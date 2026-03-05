@@ -1,0 +1,18 @@
+# Unity
+[Ll]ibrary/
+[Tt]emp/
+[Ll]ogs/
+UserSettings/
+[Bb]uild/
+[Bb]uilds/
+
+# Visual Studio
+.vs/
+*.sln
+*.csproj
+*.user
+*.userprefs
+*.suo
+
+# Claude AI 
+tmpclaude-*-cwd
