@@ -16,6 +16,10 @@ public class HomeScreenBuilder : MonoBehaviour
         Transform existing = transform.Find("HomePanel");
         if (existing) DestroyImmediate(existing.gameObject);
 
+        // Destroy existing LevelSelectPanel if exists
+        Transform existingLevelSelect = transform.Find("LevelSelectPanel");
+        if (existingLevelSelect) DestroyImmediate(existingLevelSelect.gameObject);
+
         // Create HomePanel
         GameObject homePanel = new GameObject("HomePanel");
         homePanel.transform.SetParent(transform, false);
@@ -242,6 +246,129 @@ public class HomeScreenBuilder : MonoBehaviour
         deco2Rect.anchorMax = new Vector2(0.85f, 0.65f);
         deco2Rect.sizeDelta = new Vector2(50, 50);
         animator.decoBoat2 = deco2Rect;
+
+        // Level Select Panel
+        GameObject levelSelectPanel = new GameObject("LevelSelectPanel");
+        levelSelectPanel.transform.SetParent(transform, false);
+        RectTransform lspRect = levelSelectPanel.AddComponent<RectTransform>();
+        lspRect.anchorMin = Vector2.zero;
+        lspRect.anchorMax = Vector2.one;
+        lspRect.offsetMin = Vector2.zero;
+        lspRect.offsetMax = Vector2.zero;
+        Image lspBg = levelSelectPanel.AddComponent<Image>();
+        lspBg.color = new Color(0.07f, 0.12f, 0.2f, 0.95f);
+
+        GameObject levelTitle = new GameObject("Title");
+        levelTitle.transform.SetParent(levelSelectPanel.transform, false);
+        TextMeshProUGUI levelTitleText = levelTitle.AddComponent<TextMeshProUGUI>();
+        levelTitleText.text = "SELECT LEVEL";
+        levelTitleText.fontSize = 42;
+        levelTitleText.alignment = TextAlignmentOptions.Center;
+        levelTitleText.color = Color.white;
+        RectTransform levelTitleRect = levelTitle.GetComponent<RectTransform>();
+        levelTitleRect.anchorMin = new Vector2(0.5f, 0.9f);
+        levelTitleRect.anchorMax = new Vector2(0.5f, 0.9f);
+        levelTitleRect.sizeDelta = new Vector2(700, 80);
+        levelTitleRect.anchoredPosition = Vector2.zero;
+
+        GameObject scrollView = new GameObject("LevelScrollView");
+        scrollView.transform.SetParent(levelSelectPanel.transform, false);
+        RectTransform scrollRect = scrollView.AddComponent<RectTransform>();
+        scrollRect.anchorMin = new Vector2(0.5f, 0.5f);
+        scrollRect.anchorMax = new Vector2(0.5f, 0.5f);
+        scrollRect.sizeDelta = new Vector2(860, 420);
+        scrollRect.anchoredPosition = new Vector2(0, -10);
+        Image scrollBg = scrollView.AddComponent<Image>();
+        scrollBg.color = new Color(1f, 1f, 1f, 0.08f);
+        ScrollRect sr = scrollView.AddComponent<ScrollRect>();
+        sr.horizontal = false;
+        sr.vertical = true;
+
+        GameObject viewport = new GameObject("Viewport");
+        viewport.transform.SetParent(scrollView.transform, false);
+        RectTransform viewportRect = viewport.AddComponent<RectTransform>();
+        viewportRect.anchorMin = Vector2.zero;
+        viewportRect.anchorMax = Vector2.one;
+        viewportRect.offsetMin = Vector2.zero;
+        viewportRect.offsetMax = Vector2.zero;
+        Image viewportImage = viewport.AddComponent<Image>();
+        viewportImage.color = new Color(1f, 1f, 1f, 0.01f);
+        Mask viewportMask = viewport.AddComponent<Mask>();
+        viewportMask.showMaskGraphic = false;
+
+        GameObject content = new GameObject("Content");
+        content.transform.SetParent(viewport.transform, false);
+        RectTransform contentRect = content.AddComponent<RectTransform>();
+        contentRect.anchorMin = new Vector2(0f, 1f);
+        contentRect.anchorMax = new Vector2(1f, 1f);
+        contentRect.pivot = new Vector2(0.5f, 1f);
+        contentRect.offsetMin = new Vector2(20f, 0f);
+        contentRect.offsetMax = new Vector2(-20f, 0f);
+
+        GridLayoutGroup grid = content.AddComponent<GridLayoutGroup>();
+        grid.cellSize = new Vector2(150, 70);
+        grid.spacing = new Vector2(14, 14);
+        grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        grid.constraintCount = 5;
+        grid.startAxis = GridLayoutGroup.Axis.Horizontal;
+        grid.childAlignment = TextAnchor.UpperCenter;
+
+        ContentSizeFitter fitter = content.AddComponent<ContentSizeFitter>();
+        fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        sr.viewport = viewportRect;
+        sr.content = contentRect;
+
+        GameObject levelButtonTemplate = CreateButton("LevelButtonTemplate", "1", content.transform);
+        levelButtonTemplate.SetActive(false);
+        RectTransform templateRect = levelButtonTemplate.GetComponent<RectTransform>();
+        templateRect.sizeDelta = new Vector2(150, 70);
+        TextMeshProUGUI templateText = levelButtonTemplate.GetComponentInChildren<TextMeshProUGUI>();
+        if (templateText != null)
+        {
+            templateText.fontSize = 30;
+            templateText.fontStyle = FontStyles.Bold;
+        }
+
+        GameObject lockIcon = new GameObject("LockIcon");
+        lockIcon.transform.SetParent(levelButtonTemplate.transform, false);
+        TextMeshProUGUI lockText = lockIcon.AddComponent<TextMeshProUGUI>();
+        lockText.text = "LOCK";
+        lockText.fontSize = 16;
+        lockText.alignment = TextAlignmentOptions.Center;
+        lockText.color = new Color(1f, 0.85f, 0.3f, 0.95f);
+        RectTransform lockRect = lockIcon.GetComponent<RectTransform>();
+        lockRect.anchorMin = new Vector2(0.5f, 0.2f);
+        lockRect.anchorMax = new Vector2(0.5f, 0.2f);
+        lockRect.sizeDelta = new Vector2(80, 24);
+        lockRect.anchoredPosition = Vector2.zero;
+        lockIcon.SetActive(false);
+
+        GameObject closeBtn = CreateButton("LevelSelectCloseButton", "BACK", levelSelectPanel.transform);
+        RectTransform closeRect = closeBtn.GetComponent<RectTransform>();
+        closeRect.anchorMin = new Vector2(0.5f, 0.1f);
+        closeRect.anchorMax = new Vector2(0.5f, 0.1f);
+        closeRect.sizeDelta = new Vector2(240, 56);
+        closeRect.anchoredPosition = Vector2.zero;
+
+        // Ensure home is visible by default when rebuilt
+        levelSelectPanel.SetActive(false);
+
+        // Auto-wire MainMenuManager references when present in scene
+        MainMenuManager menuManager = FindObjectOfType<MainMenuManager>();
+        if (menuManager != null)
+        {
+            menuManager.homePanel = homePanel;
+            menuManager.levelSelectPanel = levelSelectPanel;
+            menuManager.levelButtonContainer = content.transform;
+            menuManager.levelButtonPrefab = levelButtonTemplate;
+            menuManager.levelSelectCloseButton = closeBtn.GetComponent<Button>();
+            menuManager.playButton = playBtn.GetComponent<Button>();
+            menuManager.levelSelectButton = levelsBtn.GetComponent<Button>();
+            menuManager.settingsButton = settingsBtn.GetComponent<Button>();
+            menuManager.creditsButton = creditsBtn.GetComponent<Button>();
+        }
 
         Debug.Log("Home Screen UI built successfully!");
     }
