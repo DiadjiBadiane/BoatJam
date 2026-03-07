@@ -67,7 +67,7 @@ public class MainMenuManager : MonoBehaviour
     // Layout pixel heights (in canvas units at 1920×1080 reference)
     const float HEADER_HEIGHT   = 80f;
     const float PROGRESS_HEIGHT = 50f;
-    const float HEADER_TOP_PAD  = 300f;   // gap from top of panel  ← was 20
+    const float HEADER_TOP_PAD  = 90f;   // gap from top of panel  ← was 20
     const float SIDE_PAD        = 24f;
     const float CLOSE_BTN_H     = 48f;
     const float CLOSE_BTN_W     = 240f;
@@ -220,12 +220,10 @@ public class MainMenuManager : MonoBehaviour
 
     void BuildHeader()
     {
-        // Destroy and recreate so it's always fresh
         var old = levelSelectPanel.transform.Find("_Header");
         if (old != null) DestroyImmediate(old.gameObject);
 
         var header = NewRect("_Header", levelSelectPanel.transform);
-        // Anchored at top, full width, fixed height
         header.anchorMin        = new Vector2(0f, 1f);
         header.anchorMax        = new Vector2(1f, 1f);
         header.pivot            = new Vector2(0.5f, 1f);
@@ -234,35 +232,72 @@ public class MainMenuManager : MonoBehaviour
         header.offsetMin        = new Vector2(SIDE_PAD,  header.offsetMin.y);
         header.offsetMax        = new Vector2(-SIDE_PAD, header.offsetMax.y);
 
-        // ── Back button (left) ──
-        var backObj = new GameObject("_BackBtn");
+        // ── Back button — square, full header height, rounded, transparent ──
+        var backObj  = new GameObject("_BackBtn");
         backObj.transform.SetParent(header, false);
         var backRect = backObj.AddComponent<RectTransform>();
         backRect.anchorMin        = new Vector2(0f, 0f);
         backRect.anchorMax        = new Vector2(0f, 1f);
         backRect.pivot            = new Vector2(0f, 0.5f);
         backRect.anchoredPosition = Vector2.zero;
-        backRect.sizeDelta        = new Vector2(56f, 0f);
+        backRect.sizeDelta        = new Vector2(HEADER_HEIGHT, 0f);
 
         var backImg = backObj.AddComponent<Image>();
-        backImg.color = new Color(1f, 1f, 1f, 0.15f);
+        backImg.color = new Color(1f, 1f, 1f, 0.12f);
         ApplyRoundedSprite(backImg);
 
         var backBtn = backObj.AddComponent<Button>();
         var cols    = backBtn.colors;
-        cols.highlightedColor = new Color(1f, 1f, 1f, 0.28f);
-        cols.pressedColor     = new Color(1f, 1f, 1f, 0.08f);
+        cols.highlightedColor = new Color(1f, 1f, 1f, 0.25f);
+        cols.pressedColor     = new Color(1f, 1f, 1f, 0.06f);
         backBtn.colors = cols;
         backBtn.onClick.AddListener(CloseLevelSelect);
 
-        var backLabel = MakeTMP("BackLabel", backObj.transform, "‹", 36, FontStyles.Bold, Color.white, TextAlignmentOptions.Center);
-        StretchFill(backLabel);
+        var backLabel = MakeTMP("BackLabel", backObj.transform, "‹", 48, FontStyles.Bold, Color.white, TextAlignmentOptions.Center);
+        var blRect = backLabel.GetComponent<RectTransform>();
+        blRect.anchorMin = Vector2.zero; blRect.anchorMax = Vector2.one;
+        blRect.offsetMin = new Vector2(8f, 4f); blRect.offsetMax = new Vector2(-8f, -4f);
+        backLabel.GetComponent<TextMeshProUGUI>().raycastTarget = false;
 
-        // ── Title (centred over full header width) ──
-        var title = MakeTMP("_Title", header, "LEVELS", 64, FontStyles.Bold, Color.white, TextAlignmentOptions.Center);
-        StretchFill(title);
-        // pointer events off so clicks pass through to back button
-        title.GetComponent<TextMeshProUGUI>().raycastTarget = false;
+        // ── Title row: anchor icon + LEVELS text, centred ──
+        var titleRow     = new GameObject("_TitleRow");
+        titleRow.transform.SetParent(header, false);
+        var titleRowRect = titleRow.AddComponent<RectTransform>();
+        titleRowRect.anchorMin = Vector2.zero; titleRowRect.anchorMax = Vector2.one;
+        titleRowRect.offsetMin = Vector2.zero; titleRowRect.offsetMax = Vector2.zero;
+
+        var titleHL = titleRow.AddComponent<HorizontalLayoutGroup>();
+        titleHL.childAlignment       = TextAnchor.MiddleCenter;
+        titleHL.spacing              = 12f;
+        titleHL.childControlWidth    = false;
+        titleHL.childControlHeight   = false;
+        titleHL.childForceExpandWidth  = false;
+        titleHL.childForceExpandHeight = false;
+
+        // Anchor icon (loads from Resources/Icons/anchor)
+        var iconGO  = new GameObject("AnchorIcon");
+        iconGO.transform.SetParent(titleRow.transform, false);
+        var iconRT  = iconGO.AddComponent<RectTransform>();
+        iconRT.sizeDelta = new Vector2(68f, 68f);
+        var iconImg = iconGO.AddComponent<Image>();
+        iconImg.color          = Color.white;
+        iconImg.preserveAspect = true;
+        iconImg.raycastTarget  = false;
+        var anchorSprite = Resources.Load<Sprite>("Icons/anchor");
+        if (anchorSprite != null) iconImg.sprite = anchorSprite;
+
+        // LEVELS label
+        var titleGO  = new GameObject("_Title");
+        titleGO.transform.SetParent(titleRow.transform, false);
+        var titleRT  = titleGO.AddComponent<RectTransform>();
+        titleRT.sizeDelta = new Vector2(220f, HEADER_HEIGHT);
+        var titleTMP = titleGO.AddComponent<TextMeshProUGUI>();
+        titleTMP.text          = "LEVELS";
+        titleTMP.fontSize      = 38f;
+        titleTMP.fontStyle     = FontStyles.Bold;
+        titleTMP.color         = Color.white;
+        titleTMP.alignment     = TextAlignmentOptions.Center;
+        titleTMP.raycastTarget = false;
     }
 
     // ── Progress bar ─────────────────────────────────────────────────────────
@@ -284,7 +319,7 @@ public class MainMenuManager : MonoBehaviour
         block.offsetMax        = new Vector2(-SIDE_PAD, block.offsetMax.y);
 
         // World label (left)
-        progressWorldLabel = MakeTMP("WorldLabel", block, "Harbor World", 24, FontStyles.Bold,
+        progressWorldLabel = MakeTMP("WorldLabel", block, "Harbor World", 28, FontStyles.Bold,
             new Color(1f, 1f, 1f, 0.80f), TextAlignmentOptions.Left).GetComponent<TextMeshProUGUI>();
         var wlRect = progressWorldLabel.GetComponent<RectTransform>();
         wlRect.anchorMin = new Vector2(0f, 0.55f); wlRect.anchorMax = new Vector2(0.6f, 1f);

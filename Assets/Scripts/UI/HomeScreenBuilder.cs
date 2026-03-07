@@ -1,400 +1,521 @@
 // Assets/Scripts/UI/HomeScreenBuilder.cs
+// Builds the entire Boat Jam home screen in code, pixel-perfect to the HTML mockup.
+//
+// SETUP (one-time):
+//   1. Attach this script to your Canvas GameObject.
+//   2. Hit Play — the home panel is built automatically.
+//      OR right-click the component → "Build Home Screen" to build in Editor.
+//   3. MainMenuManager references are wired automatically if found in the scene.
+
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
 public class HomeScreenBuilder : MonoBehaviour
 {
-    [ContextMenu("Build Home Screen UI")]
-    public void BuildHomeScreen()
+    // ── Sprite loading ────────────────────────────────────────────────────────
+    // Put your PNGs in Assets/Resources/Icons/ with these exact names:
+    //   anchor.png, levels.png, settings.png, credits.png, boat.png
+    // Set each PNG's Texture Type to "Sprite (2D and UI)" in the Inspector.
+
+    static Sprite LoadIcon(string name)
+        => Resources.Load<Sprite>($"Icons/{name}");
+
+    // ── Layout constants ──────────────────────────────────────────────────────
+    const float SIDE_PAD    = 32f;
+    const float TOP_PAD     = 60f;
+    const float BOTTOM_PAD  = 48f;
+    const float LOGO_H      = 230f;
+    const float BTN_PLAY_H  = 68f;
+    const float BTN_SEC_H   = 60f;
+    const float BTN_ROW_H   = 54f;
+    const float BTN_GAP     = 14f;
+    const float VERSION_H   = 20f;
+    const float VERSION_PAD = 10f;
+
+    // ── Colors ────────────────────────────────────────────────────────────────
+    static Color SKY_TOP    = Hex("0ea5e9");
+    static Color SKY_MID    = Hex("0284c7");
+    static Color SKY_LOW    = Hex("0369a1");
+    static Color SEA_MID    = Hex("1e3a5f");
+    static Color SEA_BOT    = Hex("0f2239");
+    static Color ORANGE     = new Color(0.96f, 0.62f, 0.07f, 1f);
+    static Color ORANGE_SHD = new Color(0.706f, 0.325f, 0.035f, 1f);
+    static Color GLASS_BRD  = new Color(1f, 1f, 1f, 0.25f);
+    static Color GLASS_FILL = new Color(1f, 1f, 1f, 0.10f);
+    static Color CLOUD_CLR  = new Color(1f, 1f, 1f, 0.18f);
+    static Color GLINT_CLR  = new Color(1f, 0.863f, 0.314f, 0.6f);
+    static Color STAR_CLR   = new Color(1f, 0.82f, 0.10f, 1f);
+
+    // ─────────────────────────────────────────────────────────────────────────
+
+    void Start() => Build();
+
+    [ContextMenu("Build Home Screen")]
+    public void Build()
     {
-        // Assuming this script is on the Canvas
-        Canvas canvas = GetComponent<Canvas>();
-        if (canvas == null) return;
+        var old = transform.Find("HomePanel");
+        if (old != null) DestroyImmediate(old.gameObject);
 
-        // Destroy existing HomePanel if exists
-        Transform existing = transform.Find("HomePanel");
-        if (existing) DestroyImmediate(existing.gameObject);
+        var panel = NewGO("HomePanel", transform);
+        Stretch(panel);
 
-        // Destroy existing LevelSelectPanel if exists
-        Transform existingLevelSelect = transform.Find("LevelSelectPanel");
-        if (existingLevelSelect) DestroyImmediate(existingLevelSelect.gameObject);
-
-        // Create HomePanel
-        GameObject homePanel = new GameObject("HomePanel");
-        homePanel.transform.SetParent(transform, false);
-        RectTransform hpRect = homePanel.AddComponent<RectTransform>();
-        hpRect.anchorMin = Vector2.zero;
-        hpRect.anchorMax = Vector2.one;
-        hpRect.offsetMin = Vector2.zero;
-        hpRect.offsetMax = Vector2.zero;
-
-        // Add HomeScreenAnimator
-        HomeScreenAnimator animator = homePanel.AddComponent<HomeScreenAnimator>();
-
-        // Background RawImage
-        GameObject bg = new GameObject("Background");
-        bg.transform.SetParent(homePanel.transform, false);
-        RawImage bgImg = bg.AddComponent<RawImage>();
-        RectTransform bgRect = bg.GetComponent<RectTransform>();
-        bgRect.anchorMin = Vector2.zero;
-        bgRect.anchorMax = Vector2.one;
-        bgRect.offsetMin = Vector2.zero;
-        bgRect.offsetMax = Vector2.zero;
-        bgImg.color = new Color(0.1f, 0.16f, 0.28f); // Dark blue
-        animator.backgroundImage = bgImg;
-
-        // Clouds (simplified as Images)
-        for (int i = 0; i < 3; i++)
-        {
-            GameObject cloud = new GameObject($"Cloud{i+1}");
-            cloud.transform.SetParent(bg.transform, false);
-            Image cImg = cloud.AddComponent<Image>();
-            cImg.color = new Color(1,1,1,0.18f);
-            RectTransform cRect = cloud.GetComponent<RectTransform>();
-            cRect.sizeDelta = new Vector2(140 - i*20, 40 - i*5);
-            cRect.anchoredPosition = new Vector2(-200 + i*100, 200 - i*50);
-            // Assign to animator
-            if (i == 0) animator.cloud1 = cRect;
-            else if (i == 1) animator.cloud2 = cRect;
-            else animator.cloud3 = cRect;
-        }
-
-        // Waves
-        for (int i = 0; i < 3; i++)
-        {
-            GameObject wave = new GameObject($"Wave{i+1}");
-            wave.transform.SetParent(bg.transform, false);
-            Image wImg = wave.AddComponent<Image>();
-            wImg.color = new Color(0.38f, 0.85f, 0.98f, 0.25f);
-            RectTransform wRect = wave.GetComponent<RectTransform>();
-            wRect.sizeDelta = new Vector2(400, 80 - i*20);
-            wRect.anchorMin = new Vector2(0, 0);
-            wRect.anchorMax = new Vector2(1, 0);
-            wRect.anchoredPosition = new Vector2(0, 100 - i*20);
-            if (i == 0) animator.wave1 = wRect;
-            else if (i == 1) animator.wave2 = wRect;
-            else animator.wave3 = wRect;
-        }
-
-        // Glint
-        GameObject glint = new GameObject("Glint");
-        glint.transform.SetParent(bg.transform, false);
-        Image gImg = glint.AddComponent<Image>();
-        gImg.color = new Color(1, 0.87f, 0.5f, 0.6f);
-        RectTransform gRect = glint.GetComponent<RectTransform>();
-        gRect.sizeDelta = new Vector2(200, 6);
-        gRect.anchoredPosition = new Vector2(0, 200);
-        animator.glint = gImg;
-
-        // Logo Area
-        GameObject logoArea = new GameObject("LogoArea");
-        logoArea.transform.SetParent(homePanel.transform, false);
-        VerticalLayoutGroup logoLayout = logoArea.AddComponent<VerticalLayoutGroup>();
-        logoLayout.childAlignment = TextAnchor.MiddleCenter;
-        logoLayout.spacing = 8;
-        RectTransform logoRect = logoArea.GetComponent<RectTransform>();
-        logoRect.anchorMin = new Vector2(0.5f, 0.7f);
-        logoRect.anchorMax = new Vector2(0.5f, 0.7f);
-        logoRect.sizeDelta = new Vector2(300, 200);
-        logoRect.anchoredPosition = Vector2.zero;
-
-        // Boat Icon
-        GameObject boatIcon = new GameObject("BoatIcon");
-        boatIcon.transform.SetParent(logoArea.transform, false);
-        TextMeshProUGUI boatText = boatIcon.AddComponent<TextMeshProUGUI>();
-        boatText.text = "⛵";
-        boatText.fontSize = 64;
-        boatText.alignment = TextAlignmentOptions.Center;
-        animator.boatIcon = boatIcon.GetComponent<RectTransform>();
-
-        // Title
-        GameObject title = new GameObject("Title");
-        title.transform.SetParent(logoArea.transform, false);
-        TextMeshProUGUI titleText = title.AddComponent<TextMeshProUGUI>();
-        titleText.text = "BOAT JAM";
-        titleText.fontSize = 52;
-        titleText.color = Color.white;
-        titleText.alignment = TextAlignmentOptions.Center;
-        titleText.fontStyle = FontStyles.Bold;
-        // Add outline (requires TMP Outline component or material)
-        animator.titleText = titleText;
-
-        // Subtitle
-        GameObject subtitle = new GameObject("Subtitle");
-        subtitle.transform.SetParent(logoArea.transform, false);
-        TextMeshProUGUI subText = subtitle.AddComponent<TextMeshProUGUI>();
-        subText.text = "Harbor Escape";
-        subText.fontSize = 13;
-        subText.color = new Color(1,1,1,0.65f);
-        subText.alignment = TextAlignmentOptions.Center;
-        subText.fontStyle = FontStyles.UpperCase | FontStyles.Bold;
-        animator.subtitleText = subText;
-
-        // Stars
-        GameObject starsObj = new GameObject("Stars");
-        starsObj.transform.SetParent(logoArea.transform, false);
-        HorizontalLayoutGroup starsLayout = starsObj.AddComponent<HorizontalLayoutGroup>();
-        starsLayout.spacing = 4;
-        starsLayout.childAlignment = TextAnchor.MiddleCenter;
-        animator.stars = new GameObject[5];
-        for (int i = 0; i < 5; i++)
-        {
-            GameObject star = new GameObject($"Star{i+1}");
-            star.transform.SetParent(starsObj.transform, false);
-            TextMeshProUGUI starText = star.AddComponent<TextMeshProUGUI>();
-            starText.text = "⭐";
-            starText.fontSize = 18;
-            animator.stars[i] = star;
-        }
-
-        // Buttons Area
-        GameObject buttonsArea = new GameObject("ButtonsArea");
-        buttonsArea.transform.SetParent(homePanel.transform, false);
-        VerticalLayoutGroup btnLayout = buttonsArea.AddComponent<VerticalLayoutGroup>();
-        btnLayout.spacing = 14;
-        btnLayout.childAlignment = TextAnchor.MiddleCenter;
-        btnLayout.childForceExpandHeight = false;
-        btnLayout.childControlHeight = false;
-        RectTransform btnRect = buttonsArea.GetComponent<RectTransform>();
-        btnRect.anchorMin = new Vector2(0.5f, 0.3f);
-        btnRect.anchorMax = new Vector2(0.5f, 0.3f);
-        btnRect.sizeDelta = new Vector2(300, 300);
-        btnRect.anchoredPosition = Vector2.zero;
-
-        // Play Button
-        GameObject playBtn = CreateButton("PlayButton", "⚓ PLAY", buttonsArea.transform);
-        Image playImg = playBtn.GetComponent<Image>();
-        playImg.color = new Color(0.95f, 0.35f, 0.25f); // Red-orange
-        TextMeshProUGUI playTxt = playBtn.GetComponentInChildren<TextMeshProUGUI>();
-        playTxt.fontSize = 22;
-        playTxt.color = Color.white;
-        animator.playButton = playBtn.GetComponent<Button>();
-        LayoutElement playLayout = playBtn.AddComponent<LayoutElement>();
-        playLayout.preferredHeight = 60;
-        playLayout.preferredWidth = 280;
-
-        // Levels Button
-        GameObject levelsBtn = CreateButton("LevelsButton", "📋 LEVELS", buttonsArea.transform);
-        animator.levelsButton = levelsBtn.GetComponent<Button>();
-        LayoutElement levelsLayout = levelsBtn.AddComponent<LayoutElement>();
-        levelsLayout.preferredHeight = 60;
-        levelsLayout.preferredWidth = 280;
-
-        // Settings and Credits Row
-        GameObject row = new GameObject("SettingsCreditsRow");
-        row.transform.SetParent(buttonsArea.transform, false);
-        HorizontalLayoutGroup rowLayout = row.AddComponent<HorizontalLayoutGroup>();
-        rowLayout.spacing = 14;
-        rowLayout.childAlignment = TextAnchor.MiddleCenter;
-        rowLayout.childForceExpandHeight = false;
-        rowLayout.childForceExpandWidth = true;
-        rowLayout.childControlHeight = false;
-        RectTransform rowRect = row.GetComponent<RectTransform>();
-        rowRect.sizeDelta = new Vector2(280, 60);
-        LayoutElement rowLayout2 = row.AddComponent<LayoutElement>();
-        rowLayout2.preferredHeight = 60;
-        rowLayout2.preferredWidth = 280;
-
-        GameObject settingsBtn = CreateButton("SettingsButton", "⚙️ Settings", row.transform);
-        animator.settingsButton = settingsBtn.GetComponent<Button>();
-        LayoutElement settingsLayout = settingsBtn.AddComponent<LayoutElement>();
-        settingsLayout.preferredHeight = 60;
-        settingsLayout.preferredWidth = 130;
-
-        GameObject creditsBtn = CreateButton("CreditsButton", "🏆 Credits", row.transform);
-        animator.creditsButton = creditsBtn.GetComponent<Button>();
-        LayoutElement creditsLayout = creditsBtn.AddComponent<LayoutElement>();
-        creditsLayout.preferredHeight = 60;
-        creditsLayout.preferredWidth = 130;
-
-        // Version
-        GameObject version = new GameObject("Version");
-        version.transform.SetParent(homePanel.transform, false);
-        TextMeshProUGUI verText = version.AddComponent<TextMeshProUGUI>();
-        verText.text = "v1.0.0";
-        verText.fontSize = 11;
-        verText.color = new Color(1,1,1,0.3f);
-        verText.alignment = TextAlignmentOptions.Center;
-        RectTransform verRect = version.GetComponent<RectTransform>();
-        verRect.anchorMin = new Vector2(0.5f, 0.05f);
-        verRect.anchorMax = new Vector2(0.5f, 0.05f);
-        verRect.sizeDelta = new Vector2(100, 20);
-        animator.versionText = verText;
-
-        // Decorative Boats
-        GameObject deco1 = new GameObject("DecoBoat1");
-        deco1.transform.SetParent(homePanel.transform, false);
-        TextMeshProUGUI deco1Text = deco1.AddComponent<TextMeshProUGUI>();
-        deco1Text.text = "⛵";
-        deco1Text.fontSize = 28;
-        deco1Text.color = new Color(1,1,1,0.18f);
-        RectTransform deco1Rect = deco1.GetComponent<RectTransform>();
-        deco1Rect.anchorMin = new Vector2(0.1f, 0.6f);
-        deco1Rect.anchorMax = new Vector2(0.1f, 0.6f);
-        deco1Rect.sizeDelta = new Vector2(50, 50);
-        animator.decoBoat1 = deco1Rect;
-
-        GameObject deco2 = new GameObject("DecoBoat2");
-        deco2.transform.SetParent(homePanel.transform, false);
-        TextMeshProUGUI deco2Text = deco2.AddComponent<TextMeshProUGUI>();
-        deco2Text.text = "🚤";
-        deco2Text.fontSize = 20;
-        deco2Text.color = new Color(1,1,1,0.18f);
-        RectTransform deco2Rect = deco2.GetComponent<RectTransform>();
-        deco2Rect.anchorMin = new Vector2(0.85f, 0.65f);
-        deco2Rect.anchorMax = new Vector2(0.85f, 0.65f);
-        deco2Rect.sizeDelta = new Vector2(50, 50);
-        animator.decoBoat2 = deco2Rect;
-
-        // Level Select Panel
-        GameObject levelSelectPanel = new GameObject("LevelSelectPanel");
-        levelSelectPanel.transform.SetParent(transform, false);
-        RectTransform lspRect = levelSelectPanel.AddComponent<RectTransform>();
-        lspRect.anchorMin = Vector2.zero;
-        lspRect.anchorMax = Vector2.one;
-        lspRect.offsetMin = Vector2.zero;
-        lspRect.offsetMax = Vector2.zero;
-        Image lspBg = levelSelectPanel.AddComponent<Image>();
-        lspBg.color = new Color(0.07f, 0.12f, 0.2f, 0.95f);
-
-        GameObject levelTitle = new GameObject("Title");
-        levelTitle.transform.SetParent(levelSelectPanel.transform, false);
-        TextMeshProUGUI levelTitleText = levelTitle.AddComponent<TextMeshProUGUI>();
-        levelTitleText.text = "SELECT LEVEL";
-        levelTitleText.fontSize = 42;
-        levelTitleText.alignment = TextAlignmentOptions.Center;
-        levelTitleText.color = Color.white;
-        RectTransform levelTitleRect = levelTitle.GetComponent<RectTransform>();
-        levelTitleRect.anchorMin = new Vector2(0.5f, 0.9f);
-        levelTitleRect.anchorMax = new Vector2(0.5f, 0.9f);
-        levelTitleRect.sizeDelta = new Vector2(700, 80);
-        levelTitleRect.anchoredPosition = Vector2.zero;
-
-        GameObject scrollView = new GameObject("LevelScrollView");
-        scrollView.transform.SetParent(levelSelectPanel.transform, false);
-        RectTransform scrollRect = scrollView.AddComponent<RectTransform>();
-        scrollRect.anchorMin = new Vector2(0.5f, 0.5f);
-        scrollRect.anchorMax = new Vector2(0.5f, 0.5f);
-        scrollRect.sizeDelta = new Vector2(860, 420);
-        scrollRect.anchoredPosition = new Vector2(0, -10);
-        Image scrollBg = scrollView.AddComponent<Image>();
-        scrollBg.color = new Color(1f, 1f, 1f, 0.08f);
-        ScrollRect sr = scrollView.AddComponent<ScrollRect>();
-        sr.horizontal = false;
-        sr.vertical = true;
-
-        GameObject viewport = new GameObject("Viewport");
-        viewport.transform.SetParent(scrollView.transform, false);
-        RectTransform viewportRect = viewport.AddComponent<RectTransform>();
-        viewportRect.anchorMin = Vector2.zero;
-        viewportRect.anchorMax = Vector2.one;
-        viewportRect.offsetMin = Vector2.zero;
-        viewportRect.offsetMax = Vector2.zero;
-        Image viewportImage = viewport.AddComponent<Image>();
-        viewportImage.color = new Color(1f, 1f, 1f, 0.01f);
-        Mask viewportMask = viewport.AddComponent<Mask>();
-        viewportMask.showMaskGraphic = false;
-
-        GameObject content = new GameObject("Content");
-        content.transform.SetParent(viewport.transform, false);
-        RectTransform contentRect = content.AddComponent<RectTransform>();
-        contentRect.anchorMin = new Vector2(0f, 1f);
-        contentRect.anchorMax = new Vector2(1f, 1f);
-        contentRect.pivot = new Vector2(0.5f, 1f);
-        contentRect.offsetMin = new Vector2(20f, 0f);
-        contentRect.offsetMax = new Vector2(-20f, 0f);
-
-        GridLayoutGroup grid = content.AddComponent<GridLayoutGroup>();
-        grid.cellSize = new Vector2(150, 70);
-        grid.spacing = new Vector2(14, 14);
-        grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-        grid.constraintCount = 5;
-        grid.startAxis = GridLayoutGroup.Axis.Horizontal;
-        grid.childAlignment = TextAnchor.UpperCenter;
-
-        ContentSizeFitter fitter = content.AddComponent<ContentSizeFitter>();
-        fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-        sr.viewport = viewportRect;
-        sr.content = contentRect;
-
-        GameObject levelButtonTemplate = CreateButton("LevelButtonTemplate", "1", content.transform);
-        levelButtonTemplate.SetActive(false);
-        RectTransform templateRect = levelButtonTemplate.GetComponent<RectTransform>();
-        templateRect.sizeDelta = new Vector2(150, 70);
-        TextMeshProUGUI templateText = levelButtonTemplate.GetComponentInChildren<TextMeshProUGUI>();
-        if (templateText != null)
-        {
-            templateText.fontSize = 30;
-            templateText.fontStyle = FontStyles.Bold;
-        }
-
-        GameObject lockIcon = new GameObject("LockIcon");
-        lockIcon.transform.SetParent(levelButtonTemplate.transform, false);
-        TextMeshProUGUI lockText = lockIcon.AddComponent<TextMeshProUGUI>();
-        lockText.text = "LOCK";
-        lockText.fontSize = 16;
-        lockText.alignment = TextAlignmentOptions.Center;
-        lockText.color = new Color(1f, 0.85f, 0.3f, 0.95f);
-        RectTransform lockRect = lockIcon.GetComponent<RectTransform>();
-        lockRect.anchorMin = new Vector2(0.5f, 0.2f);
-        lockRect.anchorMax = new Vector2(0.5f, 0.2f);
-        lockRect.sizeDelta = new Vector2(80, 24);
-        lockRect.anchoredPosition = Vector2.zero;
-        lockIcon.SetActive(false);
-
-        GameObject closeBtn = CreateButton("LevelSelectCloseButton", "BACK", levelSelectPanel.transform);
-        RectTransform closeRect = closeBtn.GetComponent<RectTransform>();
-        closeRect.anchorMin = new Vector2(0.5f, 0.1f);
-        closeRect.anchorMax = new Vector2(0.5f, 0.1f);
-        closeRect.sizeDelta = new Vector2(240, 56);
-        closeRect.anchoredPosition = Vector2.zero;
-
-        // Ensure home is visible by default when rebuilt
-        levelSelectPanel.SetActive(false);
-
-        // Auto-wire MainMenuManager references when present in scene
-        MainMenuManager menuManager = FindObjectOfType<MainMenuManager>();
-        if (menuManager != null)
-        {
-            menuManager.homePanel = homePanel;
-            menuManager.levelSelectPanel = levelSelectPanel;
-            menuManager.levelButtonContainer = content.transform;
-            if (menuManager.levelButtonPrefab == null)
-                menuManager.levelButtonPrefab = levelButtonTemplate;
-            menuManager.levelSelectCloseButton = closeBtn.GetComponent<Button>();
-            menuManager.playButton = playBtn.GetComponent<Button>();
-            menuManager.levelSelectButton = levelsBtn.GetComponent<Button>();
-            menuManager.settingsButton = settingsBtn.GetComponent<Button>();
-            menuManager.creditsButton = creditsBtn.GetComponent<Button>();
-        }
-
-        Debug.Log("Home Screen UI built successfully!");
+        BuildBackground(panel.transform);
+        BuildContent(panel.transform);
+        ApplySprites(panel.transform);
+        WireMainMenuManager(panel);
     }
 
-    GameObject CreateButton(string name, string text, Transform parent)
+    // ── Background ────────────────────────────────────────────────────────────
+
+    void BuildBackground(Transform root)
     {
-        GameObject btn = new GameObject(name);
-        btn.transform.SetParent(parent, false);
-        Image img = btn.AddComponent<Image>();
-        img.color = new Color(1,1,1,0.12f);
-        Button button = btn.AddComponent<Button>();
-        GameObject txtObj = new GameObject("Text");
-        txtObj.transform.SetParent(btn.transform, false);
-        TextMeshProUGUI txt = txtObj.AddComponent<TextMeshProUGUI>();
-        txt.text = text;
-        txt.fontSize = 18;
-        txt.color = Color.white;
-        txt.alignment = TextAlignmentOptions.Center;
-        RectTransform txtRect = txtObj.GetComponent<RectTransform>();
-        txtRect.anchorMin = Vector2.zero;
-        txtRect.anchorMax = Vector2.one;
-        txtRect.offsetMin = Vector2.zero;
-        txtRect.offsetMax = Vector2.zero;
-        RectTransform btnRect = btn.GetComponent<RectTransform>();
-        btnRect.sizeDelta = new Vector2(250, 50);
-        return btn;
+        var bg = NewGO("Background", root);
+        Stretch(bg);
+
+        // Sky-to-sea gradient via stacked layers
+        Layer("Sky_Top", bg.transform, 0.55f, 1.0f,  SKY_TOP);
+        Layer("Sky_Mid", bg.transform, 0.30f, 0.65f, SKY_MID);
+        Layer("Sky_Low", bg.transform, 0.10f, 0.45f, SKY_LOW);
+        Layer("Sea_Mid", bg.transform, 0.00f, 0.25f, SEA_MID);
+        Layer("Sea_Bot", bg.transform, 0.00f, 0.12f, SEA_BOT);
+
+        // Clouds
+        MakeCloud(bg.transform, "Cloud1", 140f, 40f, -200f, 0.88f, 22f,  0f);
+        MakeCloud(bg.transform, "Cloud2",  90f, 28f, -150f, 0.82f, 30f, -8f);
+        MakeCloud(bg.transform, "Cloud3", 110f, 35f,  100f, 0.90f, 26f,-14f);
+
+        // Waves
+        MakeWave(bg.transform, "Wave1", 0.47f,  80f, new Color(0.22f,0.74f,0.98f,0.25f),  4f,   0f);
+        MakeWave(bg.transform, "Wave2", 0.43f, 100f, new Color(0.055f,0.647f,0.914f,0.25f),5f,  -1f);
+        MakeWave(bg.transform, "Wave3", 0.41f,  60f, new Color(0.49f,0.83f,0.99f,0.25f),  3.5f, -2f);
+
+        // Glint
+        var g  = NewGO("Glint", bg.transform);
+        var gr = g.GetComponent<RectTransform>();
+        gr.anchorMin = new Vector2(0.5f, 0.42f); gr.anchorMax = new Vector2(0.5f, 0.42f);
+        gr.pivot     = new Vector2(0.5f, 0.5f);  gr.sizeDelta = new Vector2(200f, 6f);
+        var gi = g.AddComponent<Image>(); gi.color = GLINT_CLR; Round(gi);
+        g.AddComponent<GlintPulse>();
+
+        // Deco boats
+        MakeDecoBoat(bg.transform, "DecoBoat1", "⛵", 28f, new Vector2(0.08f, 0.57f), 4f,  0f);
+        MakeDecoBoat(bg.transform, "DecoBoat2", "🚤", 20f, new Vector2(0.88f, 0.52f), 5f, -2f);
+    }
+
+    void Layer(string name, Transform parent, float minY, float maxY, Color color)
+    {
+        var go = NewGO(name, parent);
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0f, minY); rt.anchorMax = new Vector2(1f, maxY);
+        rt.offsetMin = rt.offsetMax = Vector2.zero;
+        go.AddComponent<Image>().color = color;
+    }
+
+    void MakeCloud(Transform parent, string name, float w, float h,
+                   float startX, float anchorY, float dur, float delay)
+    {
+        var go = NewGO(name, parent);
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0f, anchorY); rt.anchorMax = new Vector2(0f, anchorY);
+        rt.pivot     = new Vector2(0f, 0.5f);    rt.sizeDelta = new Vector2(w, h);
+        rt.anchoredPosition = new Vector2(startX, 0f);
+        var img = go.AddComponent<Image>(); img.color = CLOUD_CLR; Round(img);
+        var d = go.AddComponent<CloudDrifter>(); d.duration = dur; d.delay = delay;
+        d.startX = startX; d.endX = 520f;
+    }
+
+    void MakeWave(Transform parent, string name, float anchorY, float height,
+                  Color color, float dur, float delay)
+    {
+        var go = NewGO(name, parent);
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(-0.1f, anchorY); rt.anchorMax = new Vector2(1.1f, anchorY);
+        rt.pivot     = new Vector2(0.5f, 0.5f);     rt.sizeDelta = new Vector2(0f, height);
+        var img = go.AddComponent<Image>(); img.color = color; Round(img);
+        var w = go.AddComponent<WaveRocker>(); w.duration = dur; w.delay = delay;
+    }
+
+    void MakeDecoBoat(Transform parent, string name, string emoji, float fontSize,
+                      Vector2 anchor, float dur, float delay)
+    {
+        var go = NewGO(name, parent);
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = anchor; rt.anchorMax = anchor;
+        rt.pivot = new Vector2(0.5f, 0.5f); rt.sizeDelta = new Vector2(50f, 50f);
+        var tmp = go.AddComponent<TextMeshProUGUI>();
+        tmp.text = emoji; tmp.fontSize = fontSize;
+        tmp.color = CLOUD_CLR; tmp.alignment = TextAlignmentOptions.Center;
+        var bob = go.AddComponent<Bobber>();
+        bob.amplitude = 12f; bob.tiltDeg = 5f; bob.duration = dur; bob.delay = delay;
+    }
+
+    // ── Content ───────────────────────────────────────────────────────────────
+
+    void BuildContent(Transform root)
+    {
+        var c = NewGO("Content", root);
+        Stretch(c);
+        var vl = c.AddComponent<VerticalLayoutGroup>();
+        vl.childAlignment       = TextAnchor.UpperCenter;
+        vl.spacing              = 0f;
+        vl.padding              = new RectOffset(
+            Mathf.RoundToInt(SIDE_PAD), Mathf.RoundToInt(SIDE_PAD),
+            Mathf.RoundToInt(TOP_PAD),  Mathf.RoundToInt(BOTTOM_PAD));
+        vl.childControlWidth      = true;
+        vl.childControlHeight     = false;
+        vl.childForceExpandWidth  = true;
+        vl.childForceExpandHeight = false;
+
+        BuildLogo(c.transform);
+        Spacer(c.transform);
+        BuildButtons(c.transform);
+        BuildVersion(c.transform);
+    }
+
+    // ── Logo ──────────────────────────────────────────────────────────────────
+
+    void BuildLogo(Transform parent)
+    {
+        var area = NewGO("LogoArea", parent); LE(area, LOGO_H);
+        var vl = area.AddComponent<VerticalLayoutGroup>();
+        vl.childAlignment = TextAnchor.UpperCenter; vl.spacing = 6f;
+        vl.childControlWidth = true; vl.childControlHeight = false;
+        vl.childForceExpandWidth = true; vl.childForceExpandHeight = false;
+
+        // Boat icon — uses sprite from Resources/Icons/boat, falls back to placeholder
+        var boatGO = NewGO("BoatIcon", area.transform); LE(boatGO, 88f);
+        var boatImg = boatGO.AddComponent<Image>();
+        boatImg.color = Color.white;
+        boatImg.preserveAspect = true;
+        var bob = boatGO.AddComponent<Bobber>(); bob.amplitude = 8f; bob.tiltDeg = 3f; bob.duration = 3f;
+
+        // BOAT JAM title
+        var titleGO = NewGO("Title", area.transform); LE(titleGO, 64f);
+        var titleTMP = titleGO.AddComponent<TextMeshProUGUI>();
+        titleTMP.text = "BOAT JAM"; titleTMP.fontSize = 82f;
+        titleTMP.fontStyle = FontStyles.Bold; titleTMP.color = Color.white;
+        titleTMP.alignment = TextAlignmentOptions.Center;
+        titleTMP.outlineWidth = 0.25f; titleTMP.outlineColor = new Color32(3, 105, 161, 255);
+
+        // Subtitle
+        var subGO = NewGO("Subtitle", area.transform); LE(subGO, 22f);
+        var subTMP = subGO.AddComponent<TextMeshProUGUI>();
+        subTMP.text = "HARBOR ESCAPE"; subTMP.fontSize = 29f;
+        subTMP.fontStyle = FontStyles.Bold; subTMP.color = new Color(1f,1f,1f,0.65f);
+        subTMP.alignment = TextAlignmentOptions.Center; subTMP.characterSpacing = 4f;
+
+        // Stars
+        var starsGO = NewGO("Stars", area.transform); LE(starsGO, 28f);
+        var hl = starsGO.AddComponent<HorizontalLayoutGroup>();
+        hl.childAlignment = TextAnchor.MiddleCenter; hl.spacing = 4f;
+        hl.childControlWidth = false; hl.childControlHeight = false;
+        hl.childForceExpandWidth = false; hl.childForceExpandHeight = false;
+        for (int i = 0; i < 5; i++)
+        {
+            var s = NewGO($"Star{i}", starsGO.transform);
+            s.GetComponent<RectTransform>().sizeDelta = new Vector2(22f, 22f);
+            var st = s.AddComponent<TextMeshProUGUI>();
+            st.text = "★"; st.fontSize = 18f; st.color = STAR_CLR;
+            st.alignment = TextAlignmentOptions.Center;
+        }
+    }
+
+    // ── Buttons ───────────────────────────────────────────────────────────────
+
+    void BuildButtons(Transform parent)
+    {
+        float totalH = BTN_PLAY_H + BTN_GAP + BTN_SEC_H + BTN_GAP + BTN_ROW_H;
+        var area = NewGO("Buttons", parent); LE(area, totalH);
+        var vl = area.AddComponent<VerticalLayoutGroup>();
+        vl.childAlignment = TextAnchor.UpperCenter; vl.spacing = BTN_GAP;
+        vl.childControlWidth = true; vl.childControlHeight = false;
+        vl.childForceExpandWidth = true; vl.childForceExpandHeight = false;
+
+        // PLAY
+        var playGO = NewGO("PlayButton", area.transform); LE(playGO, BTN_PLAY_H);
+        var playImg = playGO.AddComponent<Image>(); playImg.color = ORANGE; Round(playImg);
+
+        var shadowGO = NewGO("Shadow", playGO.transform);
+        var shadowRT = shadowGO.GetComponent<RectTransform>();
+        shadowRT.anchorMin = new Vector2(0f,0f); shadowRT.anchorMax = new Vector2(1f,0f);
+        shadowRT.pivot = new Vector2(0.5f,1f);
+        shadowRT.offsetMin = new Vector2(4f,-8f); shadowRT.offsetMax = new Vector2(-4f,0f);
+        var shadowImg = shadowGO.AddComponent<Image>(); shadowImg.color = ORANGE_SHD;
+        shadowImg.raycastTarget = false; Round(shadowImg);
+
+        var playBtn = playGO.AddComponent<Button>(); playBtn.targetGraphic = playImg;
+        TintBtn(playBtn, new Color(1f,0.72f,0.17f,1f), new Color(0.86f,0.52f,0.02f,1f));
+
+        var playLbl = Label("Label", playGO.transform, "PLAY", 38f, FontStyles.Bold, Color.white);
+        StretchFill(playLbl); playLbl.GetComponent<TextMeshProUGUI>().raycastTarget = false;
+        // Anchor icon to the left of PLAY text — small white square as placeholder,
+        // replace playIconImg.sprite with your anchor sprite in the Inspector if desired
+        AddBtnIcon(playGO.transform, "AnchorIcon", -80f, 42f);
+
+        // LEVELS
+        SecondaryBtn(area.transform, "LevelsButton", "LEVELS", BTN_SEC_H, 38f);
+        AddBtnIcon(area.transform.Find("LevelsButton"), "LevelsIcon", -110f, 52f);
+
+        // Settings + Credits row
+        var rowGO = NewGO("BottomRow", area.transform); LE(rowGO, BTN_ROW_H);
+        var rowHL = rowGO.AddComponent<HorizontalLayoutGroup>();
+        rowHL.spacing = BTN_GAP; rowHL.childAlignment = TextAnchor.MiddleCenter;
+        rowHL.childControlWidth = true; rowHL.childControlHeight = true;
+        rowHL.childForceExpandWidth = true; rowHL.childForceExpandHeight = true;
+        SecondaryBtn(rowGO.transform, "SettingsButton", "Settings", BTN_ROW_H, 32f);
+        AddBtnIcon(rowGO.transform.Find("SettingsButton"), "SettingsIcon", -92f, 52f);
+        SecondaryBtn(rowGO.transform, "CreditsButton",  "Credits",  BTN_ROW_H, 32f);
+        AddBtnIcon(rowGO.transform.Find("CreditsButton"), "CreditsIcon", -88f, 52f);
+    }
+
+    void SecondaryBtn(Transform parent, string name, string text, float height, float fontSize)
+    {
+        var go = NewGO(name, parent); LE(go, height);
+
+        // Outer border layer
+        var borderImg = go.AddComponent<Image>(); borderImg.color = GLASS_BRD; Round(borderImg);
+
+        // Inner fill (inset 2px)
+        var fill = NewGO("Fill", go.transform);
+        var fillRT = fill.GetComponent<RectTransform>();
+        fillRT.anchorMin = Vector2.zero; fillRT.anchorMax = Vector2.one;
+        fillRT.offsetMin = new Vector2(2f,2f); fillRT.offsetMax = new Vector2(-2f,-2f);
+        var fillImg = fill.AddComponent<Image>(); fillImg.color = GLASS_FILL;
+        fillImg.raycastTarget = false; Round(fillImg);
+
+        var btn = go.AddComponent<Button>(); btn.targetGraphic = borderImg;
+        TintBtn(btn, new Color(1f,1f,1f,0.32f), new Color(1f,1f,1f,0.12f));
+
+        var lbl = Label("Label", go.transform, text, fontSize, FontStyles.Bold, Color.white);
+        StretchFill(lbl); lbl.GetComponent<TextMeshProUGUI>().raycastTarget = false;
+    }
+
+    void BuildVersion(Transform parent)
+    {
+        var sp = NewGO("VersionSpacer", parent);
+        sp.AddComponent<LayoutElement>().preferredHeight = VERSION_PAD;
+        var go = NewGO("Version", parent); LE(go, VERSION_H);
+        var tmp = go.AddComponent<TextMeshProUGUI>();
+        tmp.text = $"v{Application.version}"; tmp.fontSize = 11f;
+        tmp.color = new Color(1f,1f,1f,0.3f); tmp.alignment = TextAlignmentOptions.Center;
+        tmp.characterSpacing = 2f;
+    }
+
+    // ── Apply sprites to icon slots ───────────────────────────────────────────
+
+    void ApplySprites(Transform panel)
+    {
+        SetIcon(panel, "Content/Buttons/PlayButton/AnchorIcon",           LoadIcon("anchor"));
+        SetIcon(panel, "Content/Buttons/LevelsButton/LevelsIcon",         LoadIcon("levels"));
+        SetIcon(panel, "Content/Buttons/BottomRow/SettingsButton/SettingsIcon", LoadIcon("settings"));
+        SetIcon(panel, "Content/Buttons/BottomRow/CreditsButton/CreditsIcon",   LoadIcon("credits"));
+        SetIcon(panel, "Content/LogoArea/BoatIcon",                       LoadIcon("boat"));
+    }
+
+    static void SetIcon(Transform panel, string path, Sprite sprite)
+    {
+        if (sprite == null) return;
+        var t = panel.Find(path);
+        if (t == null) return;
+        var img = t.GetComponent<Image>();
+        if (img != null) { img.sprite = sprite; img.preserveAspect = true; }
+    }
+
+    // ── Wire MainMenuManager ──────────────────────────────────────────────────
+
+    void WireMainMenuManager(GameObject panel)
+    {
+        var mm = FindObjectOfType<MainMenuManager>();
+        if (mm == null) return;
+        mm.homePanel = panel;
+
+        Button Find(string path) => panel.transform.Find(path)?.GetComponent<Button>();
+        mm.playButton        = Find("Content/Buttons/PlayButton");
+        mm.levelSelectButton = Find("Content/Buttons/LevelsButton");
+        mm.settingsButton    = Find("Content/Buttons/BottomRow/SettingsButton");
+        mm.creditsButton     = Find("Content/Buttons/BottomRow/CreditsButton");
+
+        Debug.Log("HomeScreenBuilder: Wired MainMenuManager.");
+    }
+
+    // ── Static helpers ────────────────────────────────────────────────────────
+
+    static GameObject NewGO(string name, Transform parent)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        go.AddComponent<RectTransform>();
+        return go;
+    }
+
+    static void Stretch(GameObject go)
+    {
+        var rt = go.GetComponent<RectTransform>() ?? go.AddComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+        rt.offsetMin = rt.offsetMax = Vector2.zero;
+    }
+
+    static void LE(GameObject go, float h)
+    {
+        var le = go.GetComponent<LayoutElement>() ?? go.AddComponent<LayoutElement>();
+        le.preferredHeight = h;
+    }
+
+    static void Spacer(Transform parent)
+    {
+        var s = new GameObject("Spacer");
+        s.transform.SetParent(parent, false);
+        s.AddComponent<RectTransform>();
+        s.AddComponent<LayoutElement>().flexibleHeight = 1f;
+    }
+
+    // ── Button icon helper ────────────────────────────────────────────────────
+    // Adds a small Image to the left of centre inside a button.
+    // offsetX nudges it left of centre; size controls width+height.
+    // Assign a sprite to the returned Image, or it stays as a white shape.
+    static Image AddBtnIcon(Transform btnTransform, string name, float offsetX, float size)
+    {
+        if (btnTransform == null) return null;
+        var go = NewGO(name, btnTransform);
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.5f, 0.5f);
+        rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.pivot     = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = new Vector2(offsetX, 0f);
+        rt.sizeDelta = new Vector2(size, size);
+        var img = go.AddComponent<Image>();
+        img.color         = Color.white;
+        img.raycastTarget = false;
+        img.preserveAspect = true;
+        return img;
+    }
+
+    // ── Rounded sprite (generated at runtime, cached) ─────────────────────────
+
+    static Sprite _roundedSprite;
+
+    static Sprite GetRoundedSprite()
+    {
+        if (_roundedSprite != null) return _roundedSprite;
+
+        const int size = 128, radius = 24, border = 8;
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        var pixels = new Color32[size * size];
+
+        for (int y = 0; y < size; y++)
+        for (int x = 0; x < size; x++)
+        {
+            int cx = Mathf.Clamp(x, radius, size - radius - 1);
+            int cy = Mathf.Clamp(y, radius, size - radius - 1);
+            float dist = Mathf.Sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy));
+            byte a = (byte)(dist <= radius ? 255 : 0);
+            pixels[y * size + x] = new Color32(255, 255, 255, a);
+        }
+
+        tex.SetPixels32(pixels);
+        tex.Apply();
+
+        _roundedSprite = Sprite.Create(tex,
+            new Rect(0, 0, size, size),
+            new Vector2(0.5f, 0.5f),
+            100f,
+            0,
+            SpriteMeshType.FullRect,
+            new Vector4(border, border, border, border));  // 9-slice border
+
+        return _roundedSprite;
+    }
+
+    static void Round(Image img)
+    {
+        img.sprite = GetRoundedSprite();
+        img.type   = Image.Type.Sliced;
+    }
+
+    static GameObject Label(string name, Transform parent, string text,
+        float size, FontStyles style, Color color)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        go.AddComponent<RectTransform>();
+        var tmp = go.AddComponent<TextMeshProUGUI>();
+        tmp.text = text; tmp.fontSize = size; tmp.fontStyle = style;
+        tmp.color = color; tmp.alignment = TextAlignmentOptions.Center;
+        tmp.overflowMode = TextOverflowModes.Overflow;
+        return go;
+    }
+
+    static void StretchFill(GameObject go)
+    {
+        var rt = go.GetComponent<RectTransform>(); if (!rt) return;
+        rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+        rt.offsetMin = rt.offsetMax = Vector2.zero;
+    }
+
+    static void TintBtn(Button btn, Color highlight, Color pressed)
+    {
+        var c = btn.colors; c.highlightedColor = highlight; c.pressedColor = pressed; btn.colors = c;
+    }
+
+    static Color Hex(string hex)
+    {
+        ColorUtility.TryParseHtmlString("#" + hex, out var c); return c;
+    }
+}
+
+// ── Animation components ──────────────────────────────────────────────────────
+
+/// Drifts a cloud from startX to endX and loops.
+public class CloudDrifter : MonoBehaviour
+{
+    public float duration = 22f, delay = 0f, startX = -200f, endX = 520f;
+    RectTransform rt; float t;
+    void Awake()  { rt = GetComponent<RectTransform>(); t = delay > 0 ? -delay : 0f; }
+    void Update() {
+        t += Time.deltaTime; if (t < 0f) return;
+        var p = rt.anchoredPosition; p.x = Mathf.Lerp(startX, endX, (t % duration) / duration);
+        rt.anchoredPosition = p;
+    }
+}
+
+/// Rocks left-right via sine.
+public class WaveRocker : MonoBehaviour
+{
+    public float duration = 4f, delay = 0f, amount = 28f;
+    RectTransform rt; float t, baseX;
+    void Awake()  { rt = GetComponent<RectTransform>(); baseX = rt.anchoredPosition.x; t = delay > 0 ? -delay : 0f; }
+    void Update() {
+        t += Time.deltaTime; if (t < 0f) return;
+        var p = rt.anchoredPosition; p.x = baseX + Mathf.Sin((t / duration) * Mathf.PI * 2f) * amount;
+        rt.anchoredPosition = p;
+    }
+}
+
+/// Bobs up-down with tilt.
+public class Bobber : MonoBehaviour
+{
+    public float amplitude = 8f, tiltDeg = 3f, duration = 3f, delay = 0f;
+    RectTransform rt; float t, baseY;
+    void Awake()  { rt = GetComponent<RectTransform>(); baseY = rt.anchoredPosition.y; t = delay > 0 ? -delay : 0f; }
+    void Update() {
+        t += Time.deltaTime; if (t < 0f) return;
+        float s = Mathf.Sin((t / duration) * Mathf.PI * 2f);
+        var p = rt.anchoredPosition; p.y = baseY + s * amplitude; rt.anchoredPosition = p;
+        rt.localRotation = Quaternion.Euler(0f, 0f, s * tiltDeg);
+    }
+}
+
+/// Pulses the sun glint in width and alpha.
+public class GlintPulse : MonoBehaviour
+{
+    public float duration = 3f;
+    Image img; RectTransform rt; float t;
+    void Awake() { img = GetComponent<Image>(); rt = GetComponent<RectTransform>(); }
+    void Update() {
+        t += Time.deltaTime;
+        float p = Mathf.PingPong(t / duration, 1f);
+        var c = img.color; img.color = new Color(c.r, c.g, c.b, Mathf.Lerp(0.4f, 0.9f, p));
+        rt.sizeDelta = new Vector2(Mathf.Lerp(160f, 240f, p), rt.sizeDelta.y);
     }
 }

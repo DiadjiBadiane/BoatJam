@@ -46,6 +46,7 @@ public class LevelCardView : MonoBehaviour
             if (levelNumberLabel == null)
                 levelNumberLabel = GetComponentInChildren<TextMeshProUGUI>(true);
         }
+        levelNumberLabel.color = Color.white;
 
         if (lockIcon == null)
         {
@@ -77,6 +78,10 @@ public class LevelCardView : MonoBehaviour
                 }
             }
         }
+        
+
+    
+
 
         EnsureVisibleBody();
 
@@ -91,7 +96,7 @@ public class LevelCardView : MonoBehaviour
     public void SetData(int levelNumber, bool unlocked, int starsEarned, bool selected)
     {
         int clampedStars = Mathf.Clamp(starsEarned, 0, 3);
-        bool showLock = !unlocked;
+        bool showLock = !unlocked || (showLockUntilCompleted && clampedStars <= 0);
 
         // Level number label
         if (levelNumberLabel != null)
@@ -168,46 +173,49 @@ public class LevelCardView : MonoBehaviour
     {
         if (styleApplied) return;
 
-        if (autoApplyRaisedShadow)
+        // ── 3D raised slab (bottom dark strip, like a physical button) ──
+        if (transform.Find("CardSlab") == null)
         {
-            var shadow = GetComponent<Shadow>() ?? gameObject.AddComponent<Shadow>();
-            shadow.effectColor    = new Color(0f, 0.10f, 0.20f, 0.45f);
-            shadow.effectDistance = new Vector2(0f, -5f);
-            shadow.useGraphicAlpha = true;
+            var slab    = new GameObject("CardSlab");
+            slab.transform.SetParent(transform, false);
+            slab.transform.SetAsFirstSibling();   // behind everything
+            var slabRT  = slab.AddComponent<RectTransform>();
+            slabRT.anchorMin = Vector2.zero;
+            slabRT.anchorMax = Vector2.one;
+            slabRT.offsetMin = new Vector2(0f, -6f);   // extends 6px below card
+            slabRT.offsetMax = new Vector2(0f,  0f);
+            var slabImg = slab.AddComponent<Image>();
+            slabImg.sprite        = GetOrCreateRoundedSquareSprite();
+            slabImg.type          = Image.Type.Sliced;
+            slabImg.color         = new Color(0f, 0.06f, 0.14f, 0.55f);
+            slabImg.raycastTarget = false;
         }
 
-        // Inner border overlay (subtle white rim)
+        // ── Inner border overlay (subtle white rim) ──
         if (transform.Find("CardBorderOverlay") == null)
         {
-            var obj  = new GameObject("CardBorderOverlay");
+            var obj = new GameObject("CardBorderOverlay");
             obj.transform.SetParent(transform, false);
             obj.transform.SetAsLastSibling();
-            var rt   = obj.AddComponent<RectTransform>();
+            var rt  = obj.AddComponent<RectTransform>();
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
             rt.offsetMin = new Vector2( 2f,  2f);
             rt.offsetMax = new Vector2(-2f, -2f);
-            var img  = obj.AddComponent<Image>();
+            var img = obj.AddComponent<Image>();
             img.sprite        = GetOrCreateRoundedSquareSprite();
             img.type          = Image.Type.Sliced;
-            img.color         = new Color(1f, 1f, 1f, 0.15f);
+            img.color         = new Color(1f, 1f, 1f, 0.18f);
             img.raycastTarget = false;
         }
 
-        // Top highlight (gloss sheen)
-        if (transform.Find("CardTopHighlight") == null)
+        // ── Drop shadow via Unity Shadow component ──
+        if (autoApplyRaisedShadow)
         {
-            var obj  = new GameObject("CardTopHighlight");
-            obj.transform.SetParent(transform, false);
-            obj.transform.SetAsLastSibling();
-            var rt   = obj.AddComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.1f,  0.76f);
-            rt.anchorMax = new Vector2(0.9f,  0.95f);
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
-            var img  = obj.AddComponent<Image>();
-            img.color         = new Color(1f, 1f, 1f, 0.18f);
-            img.raycastTarget = false;
+            var shadow = GetComponent<Shadow>() ?? gameObject.AddComponent<Shadow>();
+            shadow.effectColor     = new Color(0f, 0.06f, 0.18f, 0.55f);
+            shadow.effectDistance  = new Vector2(2f, -6f);
+            shadow.useGraphicAlpha = true;
         }
 
         styleApplied = true;
