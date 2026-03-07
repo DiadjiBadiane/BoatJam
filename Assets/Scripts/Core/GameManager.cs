@@ -14,6 +14,10 @@ public class GameManager : MonoBehaviour
     [Tooltip("Drag all LevelData assets here in order")]
     public LevelData[] levels;
 
+    [Header("Progress")]
+    [Range(1, 3)]
+    public int starsAwardedOnWin = 3;
+
     public LevelData CurrentLevel      { get; private set; }
     public int       CurrentLevelIndex { get; private set; }
 
@@ -49,6 +53,8 @@ public class GameManager : MonoBehaviour
 
     public void OnLevelComplete()
     {
+        LevelProgress.SaveStars(CurrentLevelIndex, starsAwardedOnWin);
+        LevelProgress.UnlockNextLevel(CurrentLevelIndex);
         uiManager.ShowWinPanel();
     }
 

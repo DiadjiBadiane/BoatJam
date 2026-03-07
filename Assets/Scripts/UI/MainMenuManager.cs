@@ -3,11 +3,12 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
-using System.Collections;
 
 /// <summary>
 /// Controls the Main Menu scene.
-/// Panels: HomePanel, SettingsPanel, CreditsPanel, LevelSelectPanel.
+/// The level select header, progress bar and scroll area are all
+/// built and positioned entirely in code — no scene wiring needed
+/// beyond the Scroll View Content transform and Close Button.
 /// </summary>
 public class MainMenuManager : MonoBehaviour
 {
@@ -28,10 +29,10 @@ public class MainMenuManager : MonoBehaviour
 
     // ── Settings ──────────────────────────────────────────────────────────────
     [Header("Settings")]
-    public Slider  musicSlider;
-    public Slider  sfxSlider;
-    public Toggle  vibrationToggle;
-    public Button  settingsCloseButton;
+    public Slider musicSlider;
+    public Slider sfxSlider;
+    public Toggle vibrationToggle;
+    public Button settingsCloseButton;
 
     // ── Credits ───────────────────────────────────────────────────────────────
     [Header("Credits")]
@@ -39,202 +40,122 @@ public class MainMenuManager : MonoBehaviour
 
     // ── Level Select ──────────────────────────────────────────────────────────
     [Header("Level Select")]
-    public Transform    levelButtonContainer;  // parent for level buttons
-    public GameObject   levelButtonPrefab;     // prefab: Button + TMP label
-    public Button       levelSelectCloseButton;
-    private int         totalLevels;           // determined dynamically from Resources
+    public Transform  levelButtonContainer;   // Scroll View > Viewport > Content
+    public GameObject levelButtonPrefab;
+    public Button     levelSelectCloseButton;
+    private int       totalLevels;
+
+    // ── Debug ─────────────────────────────────────────────────────────────────
+    [Header("Debug")]
+    [Tooltip("Tick once to wipe saved progress. Untick after first run.")]
+    public bool resetProgressOnStart;
 
     // ── Version ───────────────────────────────────────────────────────────────
     [Header("Version")]
     public TextMeshProUGUI versionLabel;
 
-    // ── Const ──────────────────────────────────────────────────────────────────
-    private const string MUSIC_VOL_KEY     = "MusicVolume";
-    private const string SFX_VOL_KEY       = "SFXVolume";
-    private const string VIBRATION_KEY     = "Vibration";
-    private const string LEVELS_UNLOCKED_KEY = "LevelsUnlocked";
+    // ── Runtime references (built in code) ───────────────────────────────────
+    RectTransform progressFillRect;
+    TextMeshProUGUI progressCountLabel;
+    TextMeshProUGUI progressWorldLabel;
+
+    // ── Constants ─────────────────────────────────────────────────────────────
+    const string MUSIC_VOL_KEY = "MusicVolume";
+    const string SFX_VOL_KEY   = "SFXVolume";
+    const string VIBRATION_KEY = "Vibration";
+
+    // Layout pixel heights (in canvas units at 1920×1080 reference)
+    const float HEADER_HEIGHT   = 80f;
+    const float PROGRESS_HEIGHT = 50f;
+    const float HEADER_TOP_PAD  = 300f;   // gap from top of panel  ← was 20
+    const float SIDE_PAD        = 24f;
+    const float CLOSE_BTN_H     = 48f;
+    const float CLOSE_BTN_W     = 240f;
+    const float CLOSE_BTN_PAD   = 20f;   // gap from bottom
 
     // ─────────────────────────────────────────────────────────────────────────
 
     void Start()
     {
-        // Determine total levels from Resources
+        if (resetProgressOnStart)
+        {
+            ResetSavedLevelProgress();
+            Debug.Log("MainMenuManager: Progress reset on start.");
+        }
+        else if (!PlayerPrefs.HasKey("LevelsUnlocked"))
+        {
+            PlayerPrefs.SetInt("LevelsUnlocked", 1);
+            PlayerPrefs.Save();
+            Debug.Log("MainMenuManager: First run – seeded LevelsUnlocked = 1.");
+        }
+
         var loadedLevels = Resources.LoadAll<LevelData>("Levels");
         totalLevels = loadedLevels.Length;
-        Debug.Log($"MainMenuManager: Found {totalLevels} levels in Resources/Levels");
+        Debug.Log($"MainMenuManager: Found {totalLevels} level(s).");
 
-        // Version label
         if (versionLabel != null)
             versionLabel.text = $"v{Application.version}";
 
-        // Find buttons if not assigned (for dynamic UI)
-        if (levelSelectButton == null)
-            levelSelectButton = GameObject.Find("LevelSelectButton")?.GetComponent<Button>()
-                             ?? GameObject.Find("LevelsButton")?.GetComponent<Button>();
-        if (playButton == null)
-            playButton = GameObject.Find("PlayButton")?.GetComponent<Button>();
-        if (settingsButton == null)
-            settingsButton = GameObject.Find("SettingsButton")?.GetComponent<Button>();
-        if (creditsButton == null)
-            creditsButton = GameObject.Find("CreditsButton")?.GetComponent<Button>();
-        if (quitButton == null)
-            quitButton = GameObject.Find("QuitButton")?.GetComponent<Button>();
+        // Auto-find if not wired
+        if (playButton        == null) playButton        = Find<Button>("PlayButton");
+        if (levelSelectButton == null) levelSelectButton = Find<Button>("LevelSelectButton") ?? Find<Button>("LevelsButton");
+        if (settingsButton    == null) settingsButton    = Find<Button>("SettingsButton");
+        if (creditsButton     == null) creditsButton     = Find<Button>("CreditsButton");
+        if (quitButton        == null) quitButton        = Find<Button>("QuitButton");
+        if (homePanel        == null)  homePanel        = GameObject.Find("HomePanel");
+        if (levelSelectPanel == null)  levelSelectPanel = GameObject.Find("LevelSelectPanel");
 
-        // Find panel references if not assigned (works with manually-created hierarchy)
-        if (levelSelectPanel == null)
-            levelSelectPanel = GameObject.Find("LevelSelectPanel");
-        if (homePanel == null)
-            homePanel = GameObject.Find("HomePanel");
         if (levelButtonContainer == null && levelSelectPanel != null)
         {
-            Transform content = levelSelectPanel.transform.Find("LevelScrollView/Viewport/Content")
-                             ?? levelSelectPanel.transform.Find("Content");
-            if (content != null)
-                levelButtonContainer = content;
+            Transform c = levelSelectPanel.transform.Find("Scroll View/Viewport/Content")
+                       ?? levelSelectPanel.transform.Find("LevelScrollView/Viewport/Content")
+                       ?? levelSelectPanel.transform.Find("Content");
+            if (c != null) levelButtonContainer = c;
         }
+
         if (levelSelectCloseButton == null && levelSelectPanel != null)
-            levelSelectCloseButton = levelSelectPanel.GetComponentInChildren<Button>(true);
+            levelSelectCloseButton = levelSelectPanel.transform.Find("CloseButton")?.GetComponent<Button>();
 
-        // Create a runtime template if no prefab was assigned in Inspector.
         EnsureRuntimeLevelButtonPrefab();
-
-        // Keep menu canvas in a stable UI mode (prevents camera-coupled UI distortion).
         NormalizeMenuCanvas();
-
-        // Only normalize the level panel; keep existing home/settings/credits layout intact.
         NormalizePanelRect(levelSelectPanel);
 
-        // Wire up buttons
-        playButton?.onClick.AddListener(OnPlayPressed);
-        levelSelectButton?.onClick.AddListener(OpenLevelSelect);
-        settingsButton?.onClick.AddListener(OpenSettings);
-        creditsButton?.onClick.AddListener(OpenCredits);
-        quitButton?.onClick.AddListener(OnQuitPressed);
-
-        settingsCloseButton?.onClick.AddListener(CloseSettings);
-        creditsCloseButton?.onClick.AddListener(CloseCredits);
+        playButton            ?.onClick.AddListener(OnPlayPressed);
+        levelSelectButton     ?.onClick.AddListener(OpenLevelSelect);
+        settingsButton        ?.onClick.AddListener(OpenSettings);
+        creditsButton         ?.onClick.AddListener(OpenCredits);
+        quitButton            ?.onClick.AddListener(OnQuitPressed);
+        settingsCloseButton   ?.onClick.AddListener(CloseSettings);
+        creditsCloseButton    ?.onClick.AddListener(CloseCredits);
         levelSelectCloseButton?.onClick.AddListener(CloseLevelSelect);
 
-        // Load saved settings
         LoadSettings();
-
-        // Subscribe to slider / toggle changes
-        musicSlider?.onValueChanged.AddListener(v => PlayerPrefs.SetFloat(MUSIC_VOL_KEY, v));
-        sfxSlider?.onValueChanged.AddListener(v => PlayerPrefs.SetFloat(SFX_VOL_KEY, v));
+        musicSlider    ?.onValueChanged.AddListener(v => PlayerPrefs.SetFloat(MUSIC_VOL_KEY, v));
+        sfxSlider      ?.onValueChanged.AddListener(v => PlayerPrefs.SetFloat(SFX_VOL_KEY,   v));
         vibrationToggle?.onValueChanged.AddListener(v => PlayerPrefs.SetInt(VIBRATION_KEY, v ? 1 : 0));
 
-        // Show only home panel
         ShowPanel(homePanel);
     }
 
-    void NormalizePanelRect(GameObject panel)
-    {
-        if (panel == null) return;
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
-        RectTransform rect = panel.GetComponent<RectTransform>();
-        if (rect == null) return;
-
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = Vector2.zero;
-        rect.offsetMax = Vector2.zero;
-        rect.anchoredPosition = Vector2.zero;
-        rect.localScale = Vector3.one;
-    }
-
-    void NormalizeMenuCanvas()
-    {
-        Canvas canvas = null;
-        if (homePanel != null)
-            canvas = homePanel.GetComponentInParent<Canvas>();
-        if (canvas == null && levelSelectPanel != null)
-            canvas = levelSelectPanel.GetComponentInParent<Canvas>();
-        if (canvas == null)
-            return;
-
-        if (canvas.renderMode != RenderMode.ScreenSpaceOverlay)
-        {
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.worldCamera = null;
-        }
-
-        var scaler = canvas.GetComponent<CanvasScaler>();
-        if (scaler != null)
-        {
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            if (scaler.referenceResolution.x <= 0f || scaler.referenceResolution.y <= 0f)
-                scaler.referenceResolution = new Vector2(1920f, 1080f);
-        }
-    }
-
-    void EnsureRuntimeLevelButtonPrefab()
-    {
-        if (levelButtonPrefab != null || levelButtonContainer == null)
-            return;
-
-        var template = new GameObject("LevelButtonTemplate");
-        template.transform.SetParent(levelButtonContainer, false);
-        var rect = template.AddComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(150f, 70f);
-
-        var image = template.AddComponent<Image>();
-        image.color = new Color(1f, 1f, 1f, 0.12f);
-        template.AddComponent<Button>();
-
-        var textObj = new GameObject("Text");
-        textObj.transform.SetParent(template.transform, false);
-        var textRect = textObj.AddComponent<RectTransform>();
-        textRect.anchorMin = Vector2.zero;
-        textRect.anchorMax = Vector2.one;
-        textRect.offsetMin = Vector2.zero;
-        textRect.offsetMax = Vector2.zero;
-        var label = textObj.AddComponent<TextMeshProUGUI>();
-        label.text = "1";
-        label.alignment = TextAlignmentOptions.Center;
-        label.fontSize = 30;
-        label.fontStyle = FontStyles.Bold;
-        label.color = Color.white;
-
-        var lockObj = new GameObject("LockIcon");
-        lockObj.transform.SetParent(template.transform, false);
-        var lockRect = lockObj.AddComponent<RectTransform>();
-        lockRect.anchorMin = new Vector2(0.5f, 0.2f);
-        lockRect.anchorMax = new Vector2(0.5f, 0.2f);
-        lockRect.sizeDelta = new Vector2(80f, 24f);
-        lockRect.anchoredPosition = Vector2.zero;
-        var lockLabel = lockObj.AddComponent<TextMeshProUGUI>();
-        lockLabel.text = "LOCK";
-        lockLabel.alignment = TextAlignmentOptions.Center;
-        lockLabel.fontSize = 16;
-        lockLabel.color = new Color(1f, 0.85f, 0.3f, 0.95f);
-        lockObj.SetActive(false);
-
-        template.SetActive(false);
-        levelButtonPrefab = template;
-    }
+    static T Find<T>(string name) where T : Component
+        => GameObject.Find(name)?.GetComponent<T>();
 
     // ── Navigation ────────────────────────────────────────────────────────────
 
     void ShowPanel(GameObject target)
     {
-        if (target == null)
-        {
-            Debug.LogError("MainMenuManager: Tried to show a null panel. Check Inspector references.");
-            if (homePanel != null)
-                homePanel.SetActive(true);
-            return;
-        }
-
-        homePanel?.SetActive(false);
-        settingsPanel?.SetActive(false);
-        creditsPanel?.SetActive(false);
-        levelSelectPanel?.SetActive(false);
-        target?.SetActive(true);
+        if (target == null) { homePanel?.SetActive(true); return; }
+        homePanel        ?.SetActive(false);
+        settingsPanel    ?.SetActive(false);
+        creditsPanel     ?.SetActive(false);
+        levelSelectPanel ?.SetActive(false);
+        target.SetActive(true);
     }
 
     public void OnPlayPressed()
     {
-        // Jump straight to level 1
         PlayerPrefs.SetInt("SelectedLevel", 0);
         PlayerPrefs.Save();
         SceneManager.LoadScene("GameScene");
@@ -242,100 +163,27 @@ public class MainMenuManager : MonoBehaviour
 
     public void OpenLevelSelect()
     {
-        if (levelSelectPanel == null)
+        if (levelSelectPanel == null || levelButtonContainer == null || levelButtonPrefab == null)
         {
-            Debug.LogError("MainMenuManager: levelSelectPanel is not assigned in Inspector.");
-            ShowPanel(homePanel);
-            return;
-        }
-
-        if (levelButtonContainer == null || levelButtonPrefab == null)
-        {
-            Debug.LogError("MainMenuManager: Level select references missing (levelButtonContainer or levelButtonPrefab).");
-            ShowPanel(homePanel);
+            Debug.LogError("MainMenuManager: Level select references missing.");
             return;
         }
 
         NormalizePanelRect(levelSelectPanel);
-        NormalizeLevelSelectLayout();
+        BuildLevelSelectUI();     // builds header + progress + repositions scroll + close btn
         ShowPanel(levelSelectPanel);
         levelSelectPanel.transform.SetAsLastSibling();
 
-        // Ensure RectTransform sizes are valid before computing grid button sizes.
         Canvas.ForceUpdateCanvases();
-        RectTransform containerRect = levelButtonContainer as RectTransform;
-        if (containerRect != null)
-            LayoutRebuilder.ForceRebuildLayoutImmediate(containerRect);
+        var cr = levelButtonContainer as RectTransform;
+        if (cr != null) LayoutRebuilder.ForceRebuildLayoutImmediate(cr);
 
         BuildLevelButtons();
     }
 
-    void NormalizeLevelSelectLayout()
-    {
-        if (levelSelectPanel == null) return;
-
-        // Ensure fullscreen panel with a visible dim background overlay.
-        RectTransform panelRect = levelSelectPanel.GetComponent<RectTransform>();
-        if (panelRect != null)
-        {
-            panelRect.anchorMin = Vector2.zero;
-            panelRect.anchorMax = Vector2.one;
-            panelRect.offsetMin = Vector2.zero;
-            panelRect.offsetMax = Vector2.zero;
-            panelRect.localScale = Vector3.one;
-        }
-
-        Image panelBg = levelSelectPanel.GetComponent<Image>();
-        if (panelBg == null)
-            panelBg = levelSelectPanel.AddComponent<Image>();
-        panelBg.color = new Color(0.05f, 0.1f, 0.18f, 0.92f);
-
-        // Expand scroll view area.
-        Transform scroll = levelSelectPanel.transform.Find("Scroll View")
-                        ?? levelSelectPanel.transform.Find("LevelScrollView");
-        if (scroll != null)
-        {
-            RectTransform scrollRect = scroll.GetComponent<RectTransform>();
-            if (scrollRect != null)
-            {
-                scrollRect.anchorMin = new Vector2(0.08f, 0.2f);
-                scrollRect.anchorMax = new Vector2(0.92f, 0.85f);
-                scrollRect.offsetMin = Vector2.zero;
-                scrollRect.offsetMax = Vector2.zero;
-                scrollRect.localScale = Vector3.one;
-            }
-        }
-
-        // Place close button at bottom center.
-        Button closeBtn = levelSelectCloseButton;
-        if (closeBtn == null)
-            closeBtn = levelSelectPanel.transform.Find("CloseButton")?.GetComponent<Button>()
-                    ?? levelSelectPanel.transform.Find("LevelSelectCloseButton")?.GetComponent<Button>();
-
-        if (closeBtn != null)
-        {
-            RectTransform closeRect = closeBtn.GetComponent<RectTransform>();
-            if (closeRect != null)
-            {
-                closeRect.anchorMin = new Vector2(0.5f, 0.08f);
-                closeRect.anchorMax = new Vector2(0.5f, 0.08f);
-                closeRect.pivot = new Vector2(0.5f, 0.5f);
-                closeRect.anchoredPosition = Vector2.zero;
-                closeRect.sizeDelta = new Vector2(260f, 56f);
-                closeRect.localScale = Vector3.one;
-            }
-        }
-    }
-
     public void CloseLevelSelect() => ShowPanel(homePanel);
-
     public void OpenSettings()     => ShowPanel(settingsPanel);
-    public void CloseSettings()
-    {
-        PlayerPrefs.Save();
-        ShowPanel(homePanel);
-    }
-
+    public void CloseSettings()    { PlayerPrefs.Save(); ShowPanel(homePanel); }
     public void OpenCredits()      => ShowPanel(creditsPanel);
     public void CloseCredits()     => ShowPanel(homePanel);
 
@@ -348,7 +196,195 @@ public class MainMenuManager : MonoBehaviour
 #endif
     }
 
-    // ── Level Select builder ──────────────────────────────────────────────────
+    // ── Build entire level-select UI in code ──────────────────────────────────
+
+    void BuildLevelSelectUI()
+    {
+        if (levelSelectPanel == null) return;
+
+        // Make panel transparent so scene background shows through
+        var panelImg = levelSelectPanel.GetComponent<Image>() ?? levelSelectPanel.AddComponent<Image>();
+        panelImg.color = Color.clear;
+
+        float scrollTop    = HEADER_TOP_PAD + HEADER_HEIGHT + 16f + PROGRESS_HEIGHT + 24f;
+        float scrollBottom = CLOSE_BTN_PAD  + CLOSE_BTN_H  + 12f;
+
+        BuildHeader();
+        BuildProgressBar();
+        RepositionScrollView(scrollTop, scrollBottom);
+        RepositionCloseButton();
+        RefreshProgressValues();
+    }
+
+    // ── Header row ────────────────────────────────────────────────────────────
+
+    void BuildHeader()
+    {
+        // Destroy and recreate so it's always fresh
+        var old = levelSelectPanel.transform.Find("_Header");
+        if (old != null) DestroyImmediate(old.gameObject);
+
+        var header = NewRect("_Header", levelSelectPanel.transform);
+        // Anchored at top, full width, fixed height
+        header.anchorMin        = new Vector2(0f, 1f);
+        header.anchorMax        = new Vector2(1f, 1f);
+        header.pivot            = new Vector2(0.5f, 1f);
+        header.anchoredPosition = new Vector2(0f, -HEADER_TOP_PAD);
+        header.sizeDelta        = new Vector2(0f, HEADER_HEIGHT);
+        header.offsetMin        = new Vector2(SIDE_PAD,  header.offsetMin.y);
+        header.offsetMax        = new Vector2(-SIDE_PAD, header.offsetMax.y);
+
+        // ── Back button (left) ──
+        var backObj = new GameObject("_BackBtn");
+        backObj.transform.SetParent(header, false);
+        var backRect = backObj.AddComponent<RectTransform>();
+        backRect.anchorMin        = new Vector2(0f, 0f);
+        backRect.anchorMax        = new Vector2(0f, 1f);
+        backRect.pivot            = new Vector2(0f, 0.5f);
+        backRect.anchoredPosition = Vector2.zero;
+        backRect.sizeDelta        = new Vector2(56f, 0f);
+
+        var backImg = backObj.AddComponent<Image>();
+        backImg.color = new Color(1f, 1f, 1f, 0.15f);
+        ApplyRoundedSprite(backImg);
+
+        var backBtn = backObj.AddComponent<Button>();
+        var cols    = backBtn.colors;
+        cols.highlightedColor = new Color(1f, 1f, 1f, 0.28f);
+        cols.pressedColor     = new Color(1f, 1f, 1f, 0.08f);
+        backBtn.colors = cols;
+        backBtn.onClick.AddListener(CloseLevelSelect);
+
+        var backLabel = MakeTMP("BackLabel", backObj.transform, "‹", 36, FontStyles.Bold, Color.white, TextAlignmentOptions.Center);
+        StretchFill(backLabel);
+
+        // ── Title (centred over full header width) ──
+        var title = MakeTMP("_Title", header, "LEVELS", 64, FontStyles.Bold, Color.white, TextAlignmentOptions.Center);
+        StretchFill(title);
+        // pointer events off so clicks pass through to back button
+        title.GetComponent<TextMeshProUGUI>().raycastTarget = false;
+    }
+
+    // ── Progress bar ─────────────────────────────────────────────────────────
+
+    void BuildProgressBar()
+    {
+        var old = levelSelectPanel.transform.Find("_Progress");
+        if (old != null) DestroyImmediate(old.gameObject);
+
+        float topOffset = -(HEADER_TOP_PAD + HEADER_HEIGHT + 16f);
+
+        var block = NewRect("_Progress", levelSelectPanel.transform);
+        block.anchorMin        = new Vector2(0f, 1f);
+        block.anchorMax        = new Vector2(1f, 1f);
+        block.pivot            = new Vector2(0.5f, 1f);
+        block.anchoredPosition = new Vector2(0f, topOffset);
+        block.sizeDelta        = new Vector2(0f, PROGRESS_HEIGHT);
+        block.offsetMin        = new Vector2(SIDE_PAD,  block.offsetMin.y);
+        block.offsetMax        = new Vector2(-SIDE_PAD, block.offsetMax.y);
+
+        // World label (left)
+        progressWorldLabel = MakeTMP("WorldLabel", block, "Harbor World", 24, FontStyles.Bold,
+            new Color(1f, 1f, 1f, 0.80f), TextAlignmentOptions.Left).GetComponent<TextMeshProUGUI>();
+        var wlRect = progressWorldLabel.GetComponent<RectTransform>();
+        wlRect.anchorMin = new Vector2(0f, 0.55f); wlRect.anchorMax = new Vector2(0.6f, 1f);
+        wlRect.offsetMin = Vector2.zero;            wlRect.offsetMax = Vector2.zero;
+
+        // Count label (right)
+        progressCountLabel = MakeTMP("CountLabel", block, "0 / 0 complete", 26, FontStyles.Bold,
+            new Color(1f, 1f, 1f, 0.60f), TextAlignmentOptions.Right).GetComponent<TextMeshProUGUI>();
+        var clRect = progressCountLabel.GetComponent<RectTransform>();
+        clRect.anchorMin = new Vector2(0.6f, 0.55f); clRect.anchorMax = new Vector2(1f, 1f);
+        clRect.offsetMin = Vector2.zero;              clRect.offsetMax = Vector2.zero;
+
+        // Track
+        var trackObj  = new GameObject("Track");
+        trackObj.transform.SetParent(block, false);
+        var trackRect = trackObj.AddComponent<RectTransform>();
+        trackRect.anchorMin = new Vector2(0f, 0f); trackRect.anchorMax = new Vector2(1f, 0.45f);
+        trackRect.offsetMin = Vector2.zero;         trackRect.offsetMax = Vector2.zero;
+        var trackImg  = trackObj.AddComponent<Image>();
+        trackImg.color = new Color(1f, 1f, 1f, 0.12f);
+        ApplyRoundedSprite(trackImg);
+
+        // Fill
+        var fillObj  = new GameObject("Fill");
+        fillObj.transform.SetParent(trackObj.transform, false);
+        progressFillRect = fillObj.AddComponent<RectTransform>();
+        progressFillRect.anchorMin = new Vector2(0f, 0f);
+        progressFillRect.anchorMax = new Vector2(0f, 1f); // width driven at runtime
+        progressFillRect.offsetMin = Vector2.zero;
+        progressFillRect.offsetMax = Vector2.zero;
+        var fillImg  = fillObj.AddComponent<Image>();
+        fillImg.color = new Color(0.96f, 0.62f, 0.07f, 1f);
+        ApplyRoundedSprite(fillImg);
+    }
+
+    void RefreshProgressValues()
+    {
+        int unlockedCount  = LevelProgress.GetUnlockedLevelCount();
+        int completedCount = Mathf.Max(0, unlockedCount - 1);
+        float fill         = totalLevels > 0 ? Mathf.Clamp01((float)completedCount / totalLevels) : 0f;
+
+        if (progressWorldLabel != null) progressWorldLabel.text = "Harbor World";
+        if (progressCountLabel != null) progressCountLabel.text = $"{completedCount} / {totalLevels} complete";
+        if (progressFillRect   != null)
+        {
+            progressFillRect.anchorMax = new Vector2(fill, 1f);
+            progressFillRect.offsetMax = Vector2.zero;
+        }
+    }
+
+    // ── Reposition Scroll View ────────────────────────────────────────────────
+
+    void RepositionScrollView(float topPx, float bottomPx)
+    {
+        Transform scroll = levelSelectPanel.transform.Find("Scroll View")
+                        ?? levelSelectPanel.transform.Find("LevelScrollView");
+        if (scroll == null) return;
+
+        // Strip background / masks
+        var scrollImg = scroll.GetComponent<Image>();
+        if (scrollImg != null) scrollImg.color = Color.clear;
+
+        Transform viewport = scroll.Find("Viewport");
+        if (viewport != null)
+        {
+            var vImg = viewport.GetComponent<Image>();
+            if (vImg != null) vImg.color = Color.clear;
+            var mask = viewport.GetComponent<Mask>();
+            if (mask != null) { mask.showMaskGraphic = false; mask.enabled = false; }
+            var rm = viewport.GetComponent<RectMask2D>();
+            if (rm != null) rm.enabled = false;
+        }
+
+        var sr = scroll.GetComponent<RectTransform>();
+        if (sr == null) return;
+        sr.anchorMin        = Vector2.zero;
+        sr.anchorMax        = Vector2.one;
+        sr.pivot            = new Vector2(0.5f, 0.5f);
+        sr.offsetMin        = new Vector2(SIDE_PAD,  bottomPx);
+        sr.offsetMax        = new Vector2(-SIDE_PAD, -topPx);
+    }
+
+    // ── Reposition Close Button ───────────────────────────────────────────────
+
+    void RepositionCloseButton()
+    {
+        var closeBtn = levelSelectCloseButton
+                    ?? levelSelectPanel.transform.Find("CloseButton")?.GetComponent<Button>();
+        if (closeBtn == null) return;
+
+        var cr = closeBtn.GetComponent<RectTransform>();
+        if (cr == null) return;
+        cr.anchorMin        = new Vector2(0.5f, 0f);
+        cr.anchorMax        = new Vector2(0.5f, 0f);
+        cr.pivot            = new Vector2(0.5f, 0f);
+        cr.anchoredPosition = new Vector2(0f, CLOSE_BTN_PAD);
+        cr.sizeDelta        = new Vector2(CLOSE_BTN_W, CLOSE_BTN_H);
+    }
+
+    // ── Level grid ────────────────────────────────────────────────────────────
 
     void BuildLevelButtons()
     {
@@ -356,27 +392,26 @@ public class MainMenuManager : MonoBehaviour
 
         ConfigureLevelGridLayout();
 
-        // Clear old generated buttons but keep the template if it lives in the same container.
+        int selectedLevelIndex = Mathf.Max(0, PlayerPrefs.GetInt("SelectedLevel", 0));
+
         foreach (Transform child in levelButtonContainer)
         {
-            if (child.gameObject == levelButtonPrefab)
-                continue;
+            if (child.gameObject == levelButtonPrefab) continue;
             Destroy(child.gameObject);
         }
 
         for (int i = 0; i < totalLevels; i++)
         {
-            int levelIndex = i; // capture for lambda
-            GameObject btn = Instantiate(levelButtonPrefab, levelButtonContainer);
+            int levelIndex = i;
+            var btn = Instantiate(levelButtonPrefab, levelButtonContainer);
             btn.SetActive(true);
             btn.name = $"LevelBtn_{i + 1}";
 
-            TextMeshProUGUI label = btn.GetComponentInChildren<TextMeshProUGUI>();
-            if (label != null) label.text = (i + 1).ToString();
+            bool isUnlocked  = LevelProgress.IsLevelUnlocked(levelIndex);
+            int  starsEarned = LevelProgress.GetStars(levelIndex);
+            bool isSelected  = isUnlocked && levelIndex == selectedLevelIndex;
 
-            Button b = btn.GetComponent<Button>();
-            bool isUnlocked = true; // all levels selectable from the level-select screen
-
+            var b = btn.GetComponent<Button>();
             if (b != null)
             {
                 b.interactable = isUnlocked;
@@ -384,43 +419,59 @@ public class MainMenuManager : MonoBehaviour
                     b.onClick.AddListener(() => LoadLevel(levelIndex));
             }
 
-            // Visual lock/unlock indicator
-            Transform lockIcon = btn.transform.Find("LockIcon");
-            if (lockIcon != null) lockIcon.gameObject.SetActive(!isUnlocked);
+            var cv = btn.GetComponent<LevelCardView>() ?? btn.AddComponent<LevelCardView>();
+            cv.SetData(levelIndex + 1, isUnlocked, starsEarned, isSelected);
         }
+
+        var contentRect = levelButtonContainer as RectTransform;
+        if (contentRect != null)
+        {
+            contentRect.anchoredPosition = Vector2.zero;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(contentRect);
+        }
+
+        var scrollRect = levelButtonContainer.GetComponentInParent<ScrollRect>();
+        if (scrollRect != null) scrollRect.verticalNormalizedPosition = 1f;
     }
 
     void ConfigureLevelGridLayout()
     {
-        var grid = levelButtonContainer.GetComponent<GridLayoutGroup>();
-        if (grid == null) return;
+        var grid = levelButtonContainer.GetComponent<GridLayoutGroup>()
+                ?? levelButtonContainer.gameObject.AddComponent<GridLayoutGroup>();
 
-        // Fill width with 4 columns (or fewer if there are less levels).
-        int columns = Mathf.Max(1, Mathf.Min(4, totalLevels));
-        float horizontalPadding = 24f;
-        float spacing = 16f;
+        const int   columns = 4;
+        const float pad     = 12f;
+        const float gap     = 8f;
 
-        RectTransform viewportRect = levelButtonContainer.parent as RectTransform;
-        RectTransform contentRect = levelButtonContainer as RectTransform;
+        var viewportRect = levelButtonContainer.parent as RectTransform;
+        var contentRect  = levelButtonContainer as RectTransform;
         if (viewportRect == null || contentRect == null) return;
 
-        // Stretch content to viewport width so the grid can occupy full row width.
-        contentRect.anchorMin = new Vector2(0f, 1f);
-        contentRect.anchorMax = new Vector2(1f, 1f);
-        contentRect.pivot = new Vector2(0.5f, 1f);
-        contentRect.offsetMin = new Vector2(horizontalPadding, contentRect.offsetMin.y);
-        contentRect.offsetMax = new Vector2(-horizontalPadding, contentRect.offsetMax.y);
+        var fitter = levelButtonContainer.GetComponent<ContentSizeFitter>()
+                  ?? levelButtonContainer.gameObject.AddComponent<ContentSizeFitter>();
+        fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        fitter.verticalFit   = ContentSizeFitter.FitMode.PreferredSize;
 
-        float availableWidth = viewportRect.rect.width - (horizontalPadding * 2f);
-        float totalSpacing = spacing * (columns - 1);
-        float cellWidth = Mathf.Max(90f, (availableWidth - totalSpacing) / columns);
-        float cellHeight = Mathf.Max(70f, cellWidth * 0.6f);
+        contentRect.anchorMin        = new Vector2(0f, 1f);
+        contentRect.anchorMax        = new Vector2(1f, 1f);
+        contentRect.pivot            = new Vector2(0.5f, 1f);
+        contentRect.anchoredPosition = Vector2.zero;
+        contentRect.offsetMin        = new Vector2( pad, contentRect.offsetMin.y);
+        contentRect.offsetMax        = new Vector2(-pad, contentRect.offsetMax.y);
 
-        grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        float avail      = viewportRect.rect.width - pad * 2f;
+        float cellWidth  = Mathf.Max(72f, (avail - gap * (columns - 1)) / columns);
+        float cellHeight = Mathf.Clamp(cellWidth * 0.90f, 70f, 110f);
+
+        grid.constraint      = GridLayoutGroup.Constraint.FixedColumnCount;
         grid.constraintCount = columns;
-        grid.spacing = new Vector2(spacing, spacing);
-        grid.cellSize = new Vector2(cellWidth, cellHeight);
-        grid.childAlignment = TextAnchor.UpperLeft;
+        grid.spacing         = new Vector2(gap, gap);
+        grid.cellSize        = new Vector2(cellWidth, cellHeight);
+        grid.startCorner     = GridLayoutGroup.Corner.UpperLeft;
+        grid.startAxis       = GridLayoutGroup.Axis.Horizontal;
+        grid.childAlignment  = TextAnchor.UpperLeft;
+
+        LayoutRebuilder.ForceRebuildLayoutImmediate(contentRect);
     }
 
     void LoadLevel(int index)
@@ -430,27 +481,169 @@ public class MainMenuManager : MonoBehaviour
         SceneManager.LoadScene("GameScene");
     }
 
-    // ── Settings persistence ──────────────────────────────────────────────────
+    // ── Canvas / panel helpers ────────────────────────────────────────────────
+
+    void NormalizePanelRect(GameObject panel)
+    {
+        if (panel == null) return;
+        var r = panel.GetComponent<RectTransform>();
+        if (r == null) return;
+        r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one;
+        r.offsetMin = Vector2.zero; r.offsetMax = Vector2.zero;
+        r.anchoredPosition = Vector2.zero; r.localScale = Vector3.one;
+    }
+
+    void NormalizeMenuCanvas()
+    {
+        Canvas canvas = homePanel?.GetComponentInParent<Canvas>()
+                     ?? levelSelectPanel?.GetComponentInParent<Canvas>();
+        if (canvas == null) return;
+        if (canvas.renderMode != RenderMode.ScreenSpaceOverlay)
+        {
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.worldCamera = null;
+        }
+        var scaler = canvas.GetComponent<CanvasScaler>();
+        if (scaler != null)
+        {
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            if (scaler.referenceResolution.x <= 0f || scaler.referenceResolution.y <= 0f)
+                scaler.referenceResolution = new Vector2(1920f, 1080f);
+        }
+    }
+
+    // ── UI building utilities ─────────────────────────────────────────────────
+
+    /// Create an empty RectTransform child.
+    static RectTransform NewRect(string name, Transform parent)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        return go.AddComponent<RectTransform>();
+    }
+
+    /// Create a TMP label, return the GameObject.
+    static GameObject MakeTMP(string name, Transform parent, string text,
+        float fontSize, FontStyles style, Color color, TextAlignmentOptions alignment)
+    {
+        var go  = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        go.AddComponent<RectTransform>();
+        var tmp = go.AddComponent<TextMeshProUGUI>();
+        tmp.text      = text;
+        tmp.fontSize  = fontSize;
+        tmp.fontStyle = style;
+        tmp.color     = color;
+        tmp.alignment = alignment;
+        tmp.overflowMode = TextOverflowModes.Overflow;
+        return go;
+    }
+
+    /// Stretch a RectTransform to fill its parent.
+    static void StretchFill(GameObject go)
+    {
+        var r = go.GetComponent<RectTransform>();
+        if (r == null) return;
+        r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one;
+        r.offsetMin = Vector2.zero; r.offsetMax = Vector2.zero;
+    }
+
+    /// Apply a rounded-rect sprite if available (same helper as LevelCardView).
+    static void ApplyRoundedSprite(Image img)
+    {
+        var sprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/InputFieldBackground.psd");
+        if (sprite != null) { img.sprite = sprite; img.type = Image.Type.Sliced; }
+    }
+
+    // ── Runtime prefab builder ────────────────────────────────────────────────
+
+    void EnsureRuntimeLevelButtonPrefab()
+    {
+        if (levelButtonPrefab != null || levelButtonContainer == null) return;
+
+        var res = Resources.Load<GameObject>("UI/LevelCard");
+        if (res != null) { levelButtonPrefab = res; return; }
+
+#if UNITY_EDITOR
+        var ep = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/UI/LevelCard.prefab");
+        if (ep != null) { levelButtonPrefab = ep; return; }
+#endif
+
+        var t = new GameObject("LevelButtonTemplate");
+        t.transform.SetParent(levelButtonContainer, false);
+        t.AddComponent<RectTransform>().sizeDelta = new Vector2(110f, 100f);
+
+        var img = t.AddComponent<Image>(); img.color = new Color(0.22f, 0.60f, 0.40f, 1f);
+        t.AddComponent<Button>();
+
+        var tObj = new GameObject("LevelNumber (TMP)"); tObj.transform.SetParent(t.transform, false);
+        var tRect = tObj.AddComponent<RectTransform>();
+        tRect.anchorMin = new Vector2(0.5f, 0.58f); tRect.anchorMax = new Vector2(0.5f, 0.58f);
+        tRect.sizeDelta = new Vector2(80f, 48f); tRect.anchoredPosition = Vector2.zero;
+        var lbl = tObj.AddComponent<TextMeshProUGUI>();
+        lbl.text = "1"; lbl.alignment = TextAlignmentOptions.Center;
+        lbl.fontSize = 42; lbl.fontStyle = FontStyles.Bold;
+        lbl.color = new Color(0.14f, 0.19f, 0.27f, 0.95f);
+
+        var sr = new GameObject("StarsRow"); sr.transform.SetParent(t.transform, false);
+        var srRect = sr.AddComponent<RectTransform>();
+        srRect.anchorMin = new Vector2(0.5f, 0.18f); srRect.anchorMax = new Vector2(0.5f, 0.18f);
+        srRect.sizeDelta = new Vector2(90f, 20f); srRect.anchoredPosition = Vector2.zero;
+        var lo = sr.AddComponent<HorizontalLayoutGroup>();
+        lo.childAlignment = TextAnchor.MiddleCenter; lo.spacing = 6f;
+        lo.childControlWidth = lo.childControlHeight = false;
+        lo.childForceExpandWidth = lo.childForceExpandHeight = false;
+
+        var ss = Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd");
+        for (int i = 1; i <= 3; i++)
+        {
+            var s = new GameObject($"Stars{i}"); s.transform.SetParent(sr.transform, false);
+            s.AddComponent<RectTransform>().sizeDelta = new Vector2(13f, 13f);
+            var si = s.AddComponent<Image>(); si.color = new Color(1f, 0.83f, 0.32f, 1f);
+            if (ss != null) si.sprite = ss;
+        }
+
+        var lk = new GameObject("LockIcon"); lk.transform.SetParent(t.transform, false);
+        var lkR = lk.AddComponent<RectTransform>();
+        lkR.anchorMin = lkR.anchorMax = new Vector2(0.5f, 0.5f);
+        lkR.pivot = new Vector2(0.5f, 0.5f); lkR.anchoredPosition = Vector2.zero;
+        lkR.sizeDelta = new Vector2(36f, 36f);
+        lk.AddComponent<Image>().color = new Color(0.78f, 0.82f, 0.9f, 0.9f);
+        lk.SetActive(false);
+
+        var cv = t.AddComponent<LevelCardView>();
+        cv.button = t.GetComponent<Button>(); cv.background = img;
+        cv.levelNumberLabel = lbl; cv.lockIcon = lk;
+        cv.stars = new[] {
+            sr.transform.Find("Stars1")?.GetComponent<Image>(),
+            sr.transform.Find("Stars2")?.GetComponent<Image>(),
+            sr.transform.Find("Stars3")?.GetComponent<Image>()
+        };
+
+        t.SetActive(false);
+        levelButtonPrefab = t;
+    }
+
+    // ── Settings ──────────────────────────────────────────────────────────────
 
     void LoadSettings()
     {
-        if (musicSlider != null)
-            musicSlider.value = PlayerPrefs.GetFloat(MUSIC_VOL_KEY, 0.8f);
-        if (sfxSlider != null)
-            sfxSlider.value = PlayerPrefs.GetFloat(SFX_VOL_KEY, 1f);
-        if (vibrationToggle != null)
-            vibrationToggle.isOn = PlayerPrefs.GetInt(VIBRATION_KEY, 1) == 1;
+        if (musicSlider     != null) musicSlider.value    = PlayerPrefs.GetFloat(MUSIC_VOL_KEY, 0.8f);
+        if (sfxSlider       != null) sfxSlider.value      = PlayerPrefs.GetFloat(SFX_VOL_KEY,   1f);
+        if (vibrationToggle != null) vibrationToggle.isOn = PlayerPrefs.GetInt(VIBRATION_KEY, 1) == 1;
     }
 
-    // ── Public helper (called by GameManager after completing a level) ─────────
     public static void UnlockNextLevel(int justCompleted)
+        => LevelProgress.UnlockNextLevel(justCompleted);
+
+    [ContextMenu("Reset Saved Level Progress")]
+    public void ResetSavedLevelProgress()
     {
-        int current = PlayerPrefs.GetInt(LEVELS_UNLOCKED_KEY, 1);
-        int newUnlock = justCompleted + 2; // unlock the level after the one just beaten
-        if (newUnlock > current)
-        {
-            PlayerPrefs.SetInt(LEVELS_UNLOCKED_KEY, newUnlock);
-            PlayerPrefs.Save();
-        }
+        PlayerPrefs.SetInt("LevelsUnlocked", 1);
+        PlayerPrefs.SetInt("SelectedLevel",  0);
+        for (int i = 0; i < Mathf.Max(1, totalLevels); i++)
+            PlayerPrefs.DeleteKey($"LevelStars_{i}");
+        PlayerPrefs.Save();
+        Debug.Log("MainMenuManager: Level progress reset.");
     }
 }

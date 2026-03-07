@@ -362,7 +362,8 @@ public class HomeScreenBuilder : MonoBehaviour
             menuManager.homePanel = homePanel;
             menuManager.levelSelectPanel = levelSelectPanel;
             menuManager.levelButtonContainer = content.transform;
-            menuManager.levelButtonPrefab = levelButtonTemplate;
+            if (menuManager.levelButtonPrefab == null)
+                menuManager.levelButtonPrefab = levelButtonTemplate;
             menuManager.levelSelectCloseButton = closeBtn.GetComponent<Button>();
             menuManager.playButton = playBtn.GetComponent<Button>();
             menuManager.levelSelectButton = levelsBtn.GetComponent<Button>();
