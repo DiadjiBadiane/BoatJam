@@ -4,9 +4,11 @@ using UnityEngine;
 
 public class BoatMovement : MonoBehaviour
 {
+    public static System.Action<BoatMovement> OnAnyBoatMoved;
+
     [Header("Boat Config")]
     public string boatId;
-    public int    size         = 2;  // Always exactly 2 squares
+    public int    size         = 2;
     public bool   isHorizontal = true;
     public bool   isHero       = false;
 
@@ -16,30 +18,28 @@ public class BoatMovement : MonoBehaviour
     public Vector2Int GridPosition { get; private set; }
     public bool       IsMoving     { get; private set; }
 
-    // offset applied to world position based on boat pivot / size
     private Vector3 _gridOffset;
     private Vector3 _targetWorldPos;
+    private bool _completionReported;
 
     // ── Initialisation ────────────────────────────────────────────────────────
 
-    /// <summary>Set grid position and snap world transform. Does NOT register on grid.</summary>
     public void InitializePosition(Vector2Int gridPos)
     {
-        // Validate that this boat won't overflow the grid
+        _completionReported = false;
+
         if (!GridManager.Instance.IsValidPlacement(this, gridPos))
         {
-            Debug.LogError($"Boat '{boatId}' at ({gridPos.x}, {gridPos.y}) would overflow the grid! Using adjusted position.");
+            Debug.LogError($"Boat '{boatId}' at ({gridPos.x},{gridPos.y}) overflows grid — adjusting.");
             gridPos = GridManager.Instance.GetValidPosition(this, gridPos);
         }
 
         GridPosition = gridPos;
 
-        // compute offset to center the boat across its occupied cells
         float halfCell = GridManager.Instance.cellSize * 0.5f;
-        if (isHorizontal)
-            _gridOffset = new Vector3(halfCell, 0f, 0f);
-        else
-            _gridOffset = new Vector3(0f, 0f, halfCell);
+        _gridOffset = isHorizontal
+            ? new Vector3(halfCell, 0f, 0f)
+            : new Vector3(0f, 0f, halfCell);
 
         transform.position = GridManager.Instance.GridToWorld(gridPos) + _gridOffset;
     }
@@ -50,11 +50,9 @@ public class BoatMovement : MonoBehaviour
     {
         var cells = new List<Vector2Int>(size);
         for (int i = 0; i < size; i++)
-        {
             cells.Add(new Vector2Int(
                 GridPosition.x + (isHorizontal ? i : 0),
                 GridPosition.y + (isHorizontal ? 0 : i)));
-        }
         return cells;
     }
 
@@ -64,56 +62,74 @@ public class BoatMovement : MonoBehaviour
     {
         if (IsMoving) return;
 
-        // Block wrong axis
         if (dir.x != 0 && !isHorizontal) return;
         if (dir.y != 0 &&  isHorizontal) return;
 
         Vector2Int newPos = GridPosition + dir;
 
-        // Check collisions with other boats
-        if (!GridManager.Instance.CanMove(this, dir)) return;  // Would collide with another boat
+        if (!GridManager.Instance.CanMove(this, dir))                        return;
+        if (!isHero && !GridManager.Instance.IsValidPlacement(this, newPos)) return;
+        if ( isHero && !CanHeroMove(newPos))                                  return;
 
-        // Check bounds (hero boats can exit, regular boats cannot)
-        if (!isHero && !GridManager.Instance.IsValidPlacement(this, newPos)) return;  // Would overflow
-        if (isHero && !CanHeroMove(newPos)) return;  // Hero-specific movement check
+        // ── Snapshot the board BEFORE changing any state ──────────────────────
+        UIManager.Instance?.CapturePreMoveSnapshot();
+        // ─────────────────────────────────────────────────────────────────────
 
-        // ── Key fix: unregister OLD cells, update position, register NEW cells ──
         GridManager.Instance.UnregisterBoat(this);
         GridPosition = newPos;
         GridManager.Instance.RegisterBoat(this);
-        // ────────────────────────────────────────────────────────────────────────
+
+        OnAnyBoatMoved?.Invoke(this);
 
         _targetWorldPos = GridManager.Instance.GridToWorld(GridPosition) + _gridOffset;
         IsMoving = true;
     }
 
+    // ── Undo restore ──────────────────────────────────────────────────────────
+
     /// <summary>
-    /// Special movement validation for hero boats that can exit the grid.
-    /// Non-hero boats returning false for positions that would take them out of normal bounds.
+    /// Called by UIManager.UndoMove() after it has:
+    ///   1. Set transform.position back to the saved world position.
+    ///   2. Set GridPosition via ForceGridPosition() below.
+    ///   3. Called GridManager.ClearGrid() and re-registered ALL boats.
+    /// This method only needs to stop any in-flight animation.
     /// </summary>
+    public void OnUndoRestored()
+    {
+        IsMoving = false;
+        // _targetWorldPos is stale after undo, reset it so Update() does nothing harmful.
+        _targetWorldPos = transform.position;
+    }
+
+    /// <summary>
+    /// Directly sets GridPosition without touching the GridManager.
+    /// UIManager calls this as part of the full-grid-resync undo sequence.
+    /// </summary>
+    public void ForceGridPosition(Vector2Int gridPos)
+    {
+        GridPosition = gridPos;
+        _completionReported = false;
+    }
+
+    // ── Hero exit validation ──────────────────────────────────────────────────
+
     private bool CanHeroMove(Vector2Int newPos)
     {
         LevelData level = GameManager.Instance.CurrentLevel;
         if (level == null) return false;
 
-        // Check if boat is trying to exit
-        if (GridManager.Instance.IsValidPlacement(this, newPos))
-            return true;  // Normal grid position
+        if (GridManager.Instance.IsValidPlacement(this, newPos)) return true;
 
-        // Check if this is a valid exit
         for (int i = 0; i < size; i++)
         {
             Vector2Int cell = new Vector2Int(
                 newPos.x + (isHorizontal ? i : 0),
                 newPos.y + (isHorizontal ? 0 : i));
 
-            if (level.exitOnRight && cell.x >= GridManager.Instance.width && cell.y == level.exitRow)
-                return true;
-            if (!level.exitOnRight && cell.x < 0 && cell.y == level.exitRow)
-                return true;
+            if ( level.exitOnRight && cell.x >= GridManager.Instance.width && cell.y == level.exitRow) return true;
+            if (!level.exitOnRight && cell.x < 0                           && cell.y == level.exitRow) return true;
         }
-
-        return false;  // Out of bounds but not a valid exit
+        return false;
     }
 
     // ── Update / animation ────────────────────────────────────────────────────
@@ -130,8 +146,27 @@ public class BoatMovement : MonoBehaviour
             transform.position = _targetWorldPos;
             IsMoving = false;
 
-            if (isHero && GridManager.Instance.HasHeroEscaped(this))
-                GameManager.Instance.OnLevelComplete();
+            if (isHero && !_completionReported && (GridManager.Instance.HasHeroEscaped(this) || IsHeroEnteringExitLane()))
+            {
+                _completionReported = true;
+                GameManager.Instance?.OnLevelComplete();
+            }
         }
+    }
+
+    bool IsHeroEnteringExitLane()
+    {
+        LevelData level = GameManager.Instance?.CurrentLevel;
+        if (level == null) return false;
+
+        foreach (var cell in GetOccupiedCells())
+        {
+            if (level.exitOnRight && cell.x >= GridManager.Instance.width && cell.y == level.exitRow)
+                return true;
+            if (!level.exitOnRight && cell.x < 0 && cell.y == level.exitRow)
+                return true;
+        }
+
+        return false;
     }
 }

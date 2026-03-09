@@ -335,6 +335,7 @@ public class HomeScreenBuilder : MonoBehaviour
         mm.levelSelectButton = Find("Content/Buttons/LevelsButton");
         mm.settingsButton    = Find("Content/Buttons/BottomRow/SettingsButton");
         mm.creditsButton     = Find("Content/Buttons/BottomRow/CreditsButton");
+        mm.RebindButtonListeners();
 
         Debug.Log("HomeScreenBuilder: Wired MainMenuManager.");
     }

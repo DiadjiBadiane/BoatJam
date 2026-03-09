@@ -2,6 +2,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using TMPro;
 
 /// <summary>
@@ -77,6 +78,9 @@ public class MainMenuManager : MonoBehaviour
 
     void Start()
     {
+        CleanupGameplayArtifacts();
+        EnsureEventSystem();
+
         if (resetProgressOnStart)
         {
             ResetSavedLevelProgress();
@@ -120,14 +124,7 @@ public class MainMenuManager : MonoBehaviour
         NormalizeMenuCanvas();
         NormalizePanelRect(levelSelectPanel);
 
-        playButton            ?.onClick.AddListener(OnPlayPressed);
-        levelSelectButton     ?.onClick.AddListener(OpenLevelSelect);
-        settingsButton        ?.onClick.AddListener(OpenSettings);
-        creditsButton         ?.onClick.AddListener(OpenCredits);
-        quitButton            ?.onClick.AddListener(OnQuitPressed);
-        settingsCloseButton   ?.onClick.AddListener(CloseSettings);
-        creditsCloseButton    ?.onClick.AddListener(CloseCredits);
-        levelSelectCloseButton?.onClick.AddListener(CloseLevelSelect);
+        RebindButtonListeners();
 
         LoadSettings();
         musicSlider    ?.onValueChanged.AddListener(v => PlayerPrefs.SetFloat(MUSIC_VOL_KEY, v));
@@ -135,6 +132,54 @@ public class MainMenuManager : MonoBehaviour
         vibrationToggle?.onValueChanged.AddListener(v => PlayerPrefs.SetInt(VIBRATION_KEY, v ? 1 : 0));
 
         ShowPanel(homePanel);
+    }
+
+    public void RebindButtonListeners()
+    {
+        BindButton(playButton, OnPlayPressed);
+        BindButton(levelSelectButton, OpenLevelSelect);
+        BindButton(settingsButton, OpenSettings);
+        BindButton(creditsButton, OpenCredits);
+        BindButton(quitButton, OnQuitPressed);
+        BindButton(settingsCloseButton, CloseSettings);
+        BindButton(creditsCloseButton, CloseCredits);
+        BindButton(levelSelectCloseButton, CloseLevelSelect);
+    }
+
+    static void BindButton(Button button, UnityEngine.Events.UnityAction action)
+    {
+        if (button == null) return;
+        button.onClick.RemoveListener(action);
+        button.onClick.AddListener(action);
+        button.interactable = true;
+    }
+
+    void EnsureEventSystem()
+    {
+        var all = FindObjectsOfType<EventSystem>();
+        if (all.Length == 0)
+            new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+        else
+            for (int i = 1; i < all.Length; i++) Destroy(all[i].gameObject);
+    }
+
+    void CleanupGameplayArtifacts()
+    {
+        // If gameplay UI objects leaked into MainMenu, remove them so they don't block clicks.
+        string[] gameplayObjects =
+        {
+            "HUD", "TopBar", "BottomBar", "WinPanel", "PausePanel",
+            "RuntimeGameHUD", "RuntimeOceanOverlay", "LevelLabel"
+        };
+
+        for (int i = 0; i < gameplayObjects.Length; i++)
+        {
+            var go = GameObject.Find(gameplayObjects[i]);
+            if (go != null) Destroy(go);
+        }
+
+        var leakedUIManager = FindObjectOfType<UIManager>();
+        if (leakedUIManager != null) Destroy(leakedUIManager);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -584,10 +629,64 @@ public class MainMenuManager : MonoBehaviour
     }
 
     /// Apply a rounded-rect sprite if available (same helper as LevelCardView).
+    static Sprite s_RoundedSprite;
+
     static void ApplyRoundedSprite(Image img)
     {
-        var sprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/InputFieldBackground.psd");
-        if (sprite != null) { img.sprite = sprite; img.type = Image.Type.Sliced; }
+        if (img == null) return;
+
+        if (s_RoundedSprite == null)
+            s_RoundedSprite = BuildRoundedSprite();
+
+        if (s_RoundedSprite != null)
+        {
+            img.sprite = s_RoundedSprite;
+            img.type = Image.Type.Sliced;
+        }
+    }
+
+    static Sprite BuildRoundedSprite()
+    {
+        const int size = 64;
+        const float radius = 13f;
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        tex.name = "UI_RuntimeRounded_MainMenu";
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                bool inside = IsInsideRoundedRect(x + 0.5f, y + 0.5f, size, size, radius);
+                tex.SetPixel(x, y, inside ? Color.white : Color.clear);
+            }
+        }
+
+        tex.Apply();
+        return Sprite.Create(
+            tex,
+            new Rect(0, 0, size, size),
+            new Vector2(0.5f, 0.5f),
+            64f,
+            0,
+            SpriteMeshType.FullRect,
+            new Vector4(16f, 16f, 16f, 16f));
+    }
+
+    static bool IsInsideRoundedRect(float px, float py, int w, int h, float r)
+    {
+        float minX = r;
+        float maxX = w - r;
+        float minY = r;
+        float maxY = h - r;
+
+        if (px >= minX && px <= maxX) return py >= 0f && py <= h;
+        if (py >= minY && py <= maxY) return px >= 0f && px <= w;
+
+        float cx = px < minX ? minX : maxX;
+        float cy = py < minY ? minY : maxY;
+        float dx = px - cx;
+        float dy = py - cy;
+        return dx * dx + dy * dy <= r * r;
     }
 
     // ── Runtime prefab builder ────────────────────────────────────────────────
