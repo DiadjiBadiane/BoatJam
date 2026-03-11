@@ -50,6 +50,8 @@ public class UIManager : MonoBehaviour
 
     void Start()
     {
+        PlatformBootstrap.ApplyDefaults();
+
         gameManager = GameManager.Instance ?? FindObjectOfType<GameManager>();
         FixCameraBackground();
 
@@ -296,6 +298,10 @@ public class UIManager : MonoBehaviour
         s.uiScaleMode         = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         s.referenceResolution = new Vector2(1080f, 1920f);
         s.matchWidthOrHeight  = 0.5f;
+
+        // Keep gameplay UI inside safe areas on mobile devices.
+        if (mainCanvas.GetComponent<SafeAreaFitter>() == null)
+            mainCanvas.gameObject.AddComponent<SafeAreaFitter>();
     }
 
     void EnsureEventSystem()

@@ -78,6 +78,8 @@ public class MainMenuManager : MonoBehaviour
 
     void Start()
     {
+        PlatformBootstrap.ApplyDefaults();
+
         CleanupGameplayArtifacts();
         EnsureEventSystem();
 
@@ -588,8 +590,12 @@ public class MainMenuManager : MonoBehaviour
         {
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             if (scaler.referenceResolution.x <= 0f || scaler.referenceResolution.y <= 0f)
-                scaler.referenceResolution = new Vector2(1920f, 1080f);
+                scaler.referenceResolution = new Vector2(1080f, 1920f);
+            scaler.matchWidthOrHeight = 0.5f;
         }
+
+        if (canvas.GetComponent<SafeAreaFitter>() == null)
+            canvas.gameObject.AddComponent<SafeAreaFitter>();
     }
 
     // ── UI building utilities ─────────────────────────────────────────────────

@@ -1,4 +1,5 @@
 ﻿// Assets/Scripts/Core/GameManager.cs
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -22,22 +23,26 @@ public class GameManager : MonoBehaviour
     public int       CurrentLevelIndex { get; private set; }
 
     bool _levelCompletionShown;
-    int  _framesSinceLoad;          // guard: skip win-check for 2 frames after load
+    int  _framesSinceLoad;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        if (Instance != null && Instance != this)
+        {
+            Debug.LogWarning($"[GameManager] Duplicate — destroying {gameObject.name} in scene '{gameObject.scene.name}'");
+            Destroy(gameObject);
+            return;
+        }
         Instance = this;
+        Debug.Log($"[GameManager] Awake in scene '{gameObject.scene.name}'");
     }
 
     void Start()
     {
-        // Always resolve uiManager at runtime — never trust a stale Inspector ref.
         uiManager = UIManager.Instance ?? FindObjectOfType<UIManager>();
 
-        // Log level assets found in Resources (debug helper)
         var loaded = Resources.LoadAll<LevelData>("Levels");
         string info = $"Resources.LoadAll found {loaded.Length} level(s): ";
         foreach (var l in loaded)
@@ -52,10 +57,6 @@ public class GameManager : MonoBehaviour
     {
         if (_levelCompletionShown || CurrentLevel == null) return;
 
-        // Skip the first 2 frames after a level loads — LevelLoader needs at least
-        // one frame to destroy old boats and spawn new ones. Without this guard,
-        // Update() sees the hero from the PREVIOUS level still at the exit and
-        // immediately fires OnLevelComplete() on the brand-new level.
         _framesSinceLoad++;
         if (_framesSinceLoad < 3) return;
 
@@ -98,15 +99,67 @@ public class GameManager : MonoBehaviour
         CurrentLevelIndex     = index;
         CurrentLevel          = levels[index];
         _levelCompletionShown = false;
-        _framesSinceLoad      = 0;          // reset win-check guard
+        _framesSinceLoad      = 0;
 
         levelLoader.LoadLevel(CurrentLevel);
 
-        // Re-resolve UIManager in case it was rebuilt (e.g. scene reload)
         if (uiManager == null)
             uiManager = UIManager.Instance ?? FindObjectOfType<UIManager>();
-
         uiManager?.ShowGame(index + 1);
+
+        StartCoroutine(FitCameraWhenReady(CurrentLevel.gridWidth, CurrentLevel.gridHeight));
+    }
+
+    // ── Find fitter only within THIS GameManager's scene ─────────────────────
+
+    ResponsiveCameraFitter FindFitterInMyScene()
+    {
+        foreach (var root in gameObject.scene.GetRootGameObjects())
+        {
+            var f = root.GetComponentInChildren<ResponsiveCameraFitter>(true);
+            if (f != null)
+            {
+                Debug.Log($"[GameManager] Found ResponsiveCameraFitter on '{f.gameObject.name}' (active={f.gameObject.activeInHierarchy})");
+                return f;
+            }
+        }
+        Debug.LogError($"[GameManager] ResponsiveCameraFitter not found anywhere in scene '{gameObject.scene.name}'!");
+        return null;
+    }
+
+    IEnumerator FitCameraWhenReady(int expectedW, int expectedH)
+    {
+        Debug.Log($"[GameManager] Waiting for grid {expectedW}x{expectedH} in scene '{gameObject.scene.name}'");
+
+        int attempts = 0;
+        const int maxAttempts = 60;
+
+        while (attempts < maxAttempts)
+        {
+            yield return null;
+            attempts++;
+
+            if (GridManager.Instance == null) continue;
+
+            int gw = GridManager.Instance.width;
+            int gh = GridManager.Instance.height;
+            if (gw != expectedW || gh != expectedH) continue;
+
+            // Grid dimensions match — find and fire the fitter
+            var fitter = FindFitterInMyScene();
+            if (fitter == null) yield break;
+
+            if (!fitter.gameObject.activeInHierarchy)
+                fitter.gameObject.SetActive(true);
+
+            fitter.FitNow();
+            Debug.Log($"[GameManager] FitNow() called after {attempts} frame(s)");
+            yield break;
+        }
+
+        Debug.LogWarning("[GameManager] Timeout — forcing fit");
+        var f = FindFitterInMyScene();
+        if (f != null) f.FitNow();
     }
 
     public void OnLevelComplete()
@@ -117,7 +170,6 @@ public class GameManager : MonoBehaviour
         LevelProgress.SaveStars(CurrentLevelIndex, starsAwardedOnWin);
         LevelProgress.UnlockNextLevel(CurrentLevelIndex);
 
-        // Re-resolve UIManager defensively before showing win panel
         if (uiManager == null)
             uiManager = UIManager.Instance ?? FindObjectOfType<UIManager>();
 

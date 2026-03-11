@@ -251,7 +251,6 @@ GameObject:
   - component: {fileID: 330585544}
   - component: {fileID: 330585547}
   - component: {fileID: 330585548}
-  - component: {fileID: 330585549}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -390,29 +389,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InputHandler
   gameCamera: {fileID: 330585545}
-  swipeThresholdPixels: 45
---- !u!114 &330585549
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 330585543}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fa0881a5956ca6b4aa335e96427b0cbe, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ResponsiveCameraFitter
-  hudTopPortrait: 0.12
-  hudBottomPortrait: 0.14
-  hudTopLandscape: 0.16
-  hudBottomLandscape: 0.2
-  paddingFraction: 0.1
-  forceOrthographic: 1
-  forceTopDown: 1
-  cameraHeight: 15
-  minOrthoSize: 2
-  maxOrthoSize: 40
 --- !u!1 &334849431
 GameObject:
   m_ObjectHideFlags: 0
@@ -538,7 +514,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &421133866
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -635,7 +611,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1097689574
 Transform:
   m_ObjectHideFlags: 0
@@ -665,7 +641,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LevelLoader
   heroBoardPrefab: {fileID: 7897725232452775944, guid: c703be94a4fcb42408379fb89d76b725, type: 3}
   boatSize2Prefab: {fileID: 7897725232452775944, guid: c703be94a4fcb42408379fb89d76b725, type: 3}
-  harborGrid: {fileID: 0}
 --- !u!1 &1619849090
 GameObject:
   m_ObjectHideFlags: 0
