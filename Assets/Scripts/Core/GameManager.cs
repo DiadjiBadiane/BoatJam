@@ -19,11 +19,16 @@ public class GameManager : MonoBehaviour
     [Range(1, 3)]
     public int starsAwardedOnWin = 3;
 
+    [Header("Auto-Advance")]
+    [Tooltip("Seconds to wait between each auto-step when the hero path is clear")]
+    [SerializeField] float autoAdvanceStepDelay = 0.18f;
+
     public LevelData CurrentLevel      { get; private set; }
     public int       CurrentLevelIndex { get; private set; }
 
     bool _levelCompletionShown;
     int  _framesSinceLoad;
+    bool _autoAdvanceRunning;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -52,6 +57,81 @@ public class GameManager : MonoBehaviour
         int startIndex = PlayerPrefs.GetInt("SelectedLevel", 0);
         LoadLevel(startIndex);
     }
+
+    void OnEnable()  => BoatMovement.OnAnyBoatMoved += OnAnyBoatMoved;
+    void OnDisable() => BoatMovement.OnAnyBoatMoved -= OnAnyBoatMoved;
+
+    // ── Auto-advance trigger ──────────────────────────────────────────────────
+
+    void OnAnyBoatMoved(BoatMovement movedBoat)
+    {
+        // Don't start a second coroutine if one is already running
+        if (_autoAdvanceRunning || _levelCompletionShown) return;
+
+        // Wait until the moving boat has finished its animation, then check
+        StartCoroutine(CheckAndAutoAdvance());
+    }
+
+    IEnumerator CheckAndAutoAdvance()
+    {
+        _autoAdvanceRunning = true;
+
+        // Wait for all boats to finish their current animation
+        yield return new WaitUntil(() => !AnyBoatMoving());
+
+        if (_levelCompletionShown) { _autoAdvanceRunning = false; yield break; }
+
+        BoatMovement hero = FindHero();
+        if (hero == null) { _autoAdvanceRunning = false; yield break; }
+
+        if (!GridManager.Instance.IsHeroPathClear(hero))
+        {
+            _autoAdvanceRunning = false;
+            yield break;
+        }
+
+        Debug.Log("[GameManager] Hero path is clear — auto-advancing!");
+
+        // Step the hero forward until it escapes
+        Vector2Int exitDir = CurrentLevel.exitOnRight ? Vector2Int.right : Vector2Int.left;
+
+        while (!_levelCompletionShown)
+        {
+            // Wait for the previous step animation to finish
+            yield return new WaitUntil(() => !hero.IsMoving);
+
+            if (_levelCompletionShown) break;
+
+            // Has the hero already escaped?
+            if (GridManager.Instance.HasHeroEscaped(hero)) break;
+
+            // Small delay between steps so it feels smooth, not instant
+            yield return new WaitForSeconds(autoAdvanceStepDelay);
+
+            hero.TryMove(exitDir);
+
+            // Give it at least one frame to start moving
+            yield return null;
+        }
+
+        _autoAdvanceRunning = false;
+    }
+
+    BoatMovement FindHero()
+    {
+        foreach (var b in FindObjectsOfType<BoatMovement>())
+            if (b != null && b.isHero) return b;
+        return null;
+    }
+
+    bool AnyBoatMoving()
+    {
+        foreach (var b in FindObjectsOfType<BoatMovement>())
+            if (b != null && b.IsMoving) return true;
+        return false;
+    }
+
+    // ── Existing Update (kept as safety net for edge-cases) ───────────────────
 
     void Update()
     {
@@ -100,6 +180,9 @@ public class GameManager : MonoBehaviour
         CurrentLevel          = levels[index];
         _levelCompletionShown = false;
         _framesSinceLoad      = 0;
+        _autoAdvanceRunning   = false;
+
+        StopAllCoroutines();
 
         levelLoader.LoadLevel(CurrentLevel);
 

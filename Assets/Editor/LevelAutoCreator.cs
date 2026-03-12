@@ -103,7 +103,7 @@ public static class LevelAutoCreator
                 index=1, gridWidth=6, gridHeight=6, exitRow=2, exitOnRight=true,
                 boats = new List<BoatDefinition> {
                     new BoatDefinition("hero",   0,2, 2, true,  true),
-                    new BoatDefinition("boat_1", 2,2, 2, false, false),
+                    new BoatDefinition("boat_1", 2,1, 3, false, false), // V col2 rows1-3 — size 3 U_Boat test
                 }
             },
 

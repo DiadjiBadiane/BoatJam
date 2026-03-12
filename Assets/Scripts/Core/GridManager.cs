@@ -68,6 +68,53 @@ public class GridManager : MonoBehaviour
         return ok;
     }
 
+    // ── Hero path check ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns TRUE if every cell between the hero boat's leading edge and the exit boundary
+    /// is empty — i.e. the hero can slide all the way out without any obstacle.
+    /// </summary>
+    public bool IsHeroPathClear(BoatMovement hero)
+    {
+        LevelData level = GameManager.Instance?.CurrentLevel;
+        if (level == null) return false;
+
+        // Temporarily remove the hero so it doesn't block itself
+        UnregisterBoat(hero);
+
+        bool clear = true;
+
+        if (level.exitOnRight)
+        {
+            // Hero moves right: check every column from (rightmost cell + 1) to (width - 1)
+            int heroRight = int.MinValue;
+            foreach (var cell in hero.GetOccupiedCells())
+                if (cell.x > heroRight) heroRight = cell.x;
+
+            for (int x = heroRight + 1; x < width; x++)
+            {
+                var check = new Vector2Int(x, level.exitRow);
+                if (_occupied.ContainsKey(check)) { clear = false; break; }
+            }
+        }
+        else
+        {
+            // Hero moves left: check every column from (leftmost cell - 1) down to 0
+            int heroLeft = int.MaxValue;
+            foreach (var cell in hero.GetOccupiedCells())
+                if (cell.x < heroLeft) heroLeft = cell.x;
+
+            for (int x = heroLeft - 1; x >= 0; x--)
+            {
+                var check = new Vector2Int(x, level.exitRow);
+                if (_occupied.ContainsKey(check)) { clear = false; break; }
+            }
+        }
+
+        RegisterBoat(hero);
+        return clear;
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     public bool InBounds(Vector2Int cell)
