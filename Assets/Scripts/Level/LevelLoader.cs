@@ -7,6 +7,19 @@ public class LevelLoader : MonoBehaviour
     public GameObject heroBoardPrefab;   // Boat_Hero prefab (size 2)
     public GameObject boatSize2Prefab;   // Boat_Small prefab (size 2)
 
+    [Header("Boat Visual Fit")]
+    [Tooltip("If enabled, every spawned boat is auto-fitted to grid size at runtime.")]
+    public bool enforceRuntimeBoatFit = true;
+
+    [Tooltip("Scale multiplier for regular (non-hero) boats after grid fitting.")]
+    [Range(0.5f, 4.0f)] public float runtimeScaleFactor = 1.15f;
+
+    [Tooltip("Scale multiplier for the hero boat after grid fitting. Increase this if your hero prefab mesh appears too small.")]
+    [Range(0.5f, 4.0f)] public float heroScaleFactor = 2.5f;
+
+    [Tooltip("Height used for generated BoxCollider on spawned boats.")]
+    public float runtimeColliderHeight = 0.4f;
+
     [Header("References")]
     [Tooltip("Drag the HarborGrid object here so cellSize stays in sync")]
     public HarborGrid harborGrid;
@@ -66,6 +79,15 @@ public class LevelLoader : MonoBehaviour
             bm.size         = 2;
             bm.isHorizontal = data.isHorizontal;
             bm.isHero       = data.isHero;
+
+            if (enforceRuntimeBoatFit)
+            {
+                var fitter = go.GetComponent<BoatMeshFitter>();
+                if (fitter == null)
+                    fitter = go.AddComponent<BoatMeshFitter>();
+
+                fitter.ApplyFitSettings(bm.size, bm.isHero ? heroScaleFactor : runtimeScaleFactor, runtimeColliderHeight);
+            }
 
             Vector2Int startPos = new Vector2Int(data.col, data.row);
             Vector2Int clamped  = GridManager.Instance.GetValidPosition(bm, startPos);

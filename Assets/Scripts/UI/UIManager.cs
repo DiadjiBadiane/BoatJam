@@ -80,6 +80,9 @@ public class UIManager : MonoBehaviour
 
     void OnBoatMoved(BoatMovement _) => RegisterMove();
 
+    /// <summary>Returns the number of moves made in the current level.</summary>
+    public int GetMoveCount() => movesCount;
+
     // ── Camera background ─────────────────────────────────────────────────────
 
     void FixCameraBackground()
@@ -121,7 +124,11 @@ public class UIManager : MonoBehaviour
         Time.timeScale = 1f;
     }
 
-    public void ShowWinPanel()
+    /// <summary>
+    /// Show the win panel. GameManager calls this with the star count already
+    /// calculated from LevelData.CalculateStars(moveCount).
+    /// </summary>
+    public void ShowWinPanel(int stars = -1)
     {
         // Safety: rebuild the win panel if it was somehow destroyed or never built
         if (winPanel == null)
@@ -163,7 +170,10 @@ public class UIManager : MonoBehaviour
             replayBtn.onClick.AddListener(RestartLevel);
         }
 
-        int stars = movesCount <= 5 ? 3 : movesCount <= 12 ? 2 : 1;
+        // If caller didn't supply stars, fall back to the old heuristic
+        if (stars < 1 || stars > 3)
+            stars = movesCount <= 5 ? 3 : movesCount <= 12 ? 2 : 1;
+
         UpdateStars(stars);
 
         Debug.Log($"UIManager.ShowWinPanel shown — stars={stars}, movesCount={movesCount}");

@@ -40,29 +40,36 @@ public class HarborGrid : MonoBehaviour
     void DrawWaterFloor()
     {
         int w = gridManager.width, h = gridManager.height;
-        Quad("WaterBacking", transform,
-            new Vector3((w-1)*cellSize*.5f, -0.02f, (h-1)*cellSize*.5f),
-            new Vector3(w*cellSize+.06f, h*cellSize+.06f), COL_GRID_BG, false);
+        float tileH = 0.05f;   // thin but real 3D slab — sits clearly below boats at Y=0
+        float floorY = -tileH * 0.5f;
+
+        // Backing plate
+        Cube("WaterBacking", transform,
+            new Vector3((w-1)*cellSize*.5f, floorY - 0.01f, (h-1)*cellSize*.5f),
+            new Vector3(w*cellSize+.06f, tileH, h*cellSize+.06f), COL_GRID_BG);
+
+        // Per-cell water tiles
         for (int x = 0; x < w; x++)
         for (int y = 0; y < h; y++)
-            Quad($"Water_{x}_{y}", transform,
-                new Vector3(x*cellSize, -0.01f, y*cellSize),
-                Vector3.one*(cellSize-.04f),
-                (x+y)%2==0 ? COL_WATER_A : COL_WATER_B, true);
+            Cube($"Water_{x}_{y}", transform,
+                new Vector3(x*cellSize, floorY, y*cellSize),
+                new Vector3(cellSize-.04f, tileH, cellSize-.04f),
+                (x+y)%2==0 ? COL_WATER_A : COL_WATER_B);
     }
 
     void DrawGridLines()
     {
         int w = gridManager.width, h = gridManager.height;
-        float lw = 0.03f;
+        float lw = 0.03f, lh = 0.02f;
+        float lineY = -lh * 0.5f + 0.001f;  // just above water tiles, below boats
         for (int y = 0; y <= h; y++)
-            Quad($"GH_{y}", transform,
-                new Vector3((w-1)*cellSize*.5f, .001f, y*cellSize-cellSize*.5f),
-                new Vector3(w*cellSize, lw), COL_GRID_LINE, false);
+            Cube($"GH_{y}", transform,
+                new Vector3((w-1)*cellSize*.5f, lineY, y*cellSize-cellSize*.5f),
+                new Vector3(w*cellSize, lh, lw), COL_GRID_LINE);
         for (int x = 0; x <= w; x++)
-            Quad($"GV_{x}", transform,
-                new Vector3(x*cellSize-cellSize*.5f, .001f, (h-1)*cellSize*.5f),
-                new Vector3(lw, h*cellSize), COL_GRID_LINE, false);
+            Cube($"GV_{x}", transform,
+                new Vector3(x*cellSize-cellSize*.5f, lineY, (h-1)*cellSize*.5f),
+                new Vector3(lw, lh, h*cellSize), COL_GRID_LINE);
     }
 
     void DrawDockBorder()
@@ -98,17 +105,8 @@ public class HarborGrid : MonoBehaviour
             var bolt = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             bolt.name = "Bolt"; bolt.transform.SetParent(transform,false);
             bolt.transform.position = pos; bolt.transform.localScale = new Vector3(r,.05f,r);
-            SetMat(bolt, COL_BOLT, false); Destroy(bolt.GetComponent<Collider>());
+            SetMat(bolt, COL_BOLT); Destroy(bolt.GetComponent<Collider>());
         }
-    }
-
-    static GameObject Quad(string n, Transform p, Vector3 pos, Vector3 scl, Color col, bool glossy)
-    {
-        var go = GameObject.CreatePrimitive(PrimitiveType.Quad);
-        go.name=n; go.transform.SetParent(p,false);
-        go.transform.position=pos; go.transform.rotation=Quaternion.Euler(90,0,0);
-        go.transform.localScale=new Vector3(scl.x,scl.y,1); SetMat(go,col,glossy);
-        Destroy(go.GetComponent<Collider>()); return go;
     }
 
     static GameObject Cube(string n, Transform p, Vector3 pos, Vector3 scl, Color col)
@@ -116,20 +114,26 @@ public class HarborGrid : MonoBehaviour
         var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
         go.name=n; go.transform.SetParent(p,false);
         go.transform.position=pos; go.transform.localScale=scl;
-        SetMat(go,col,false); Destroy(go.GetComponent<Collider>()); return go;
+        SetMat(go,col); Destroy(go.GetComponent<Collider>()); return go;
     }
 
-    static void SetMat(GameObject go, Color col, bool glossy)
+    static void SetMat(GameObject go, Color col)
     {
-        var r = go.GetComponent<Renderer>(); if(r==null) return;
-        Shader shader = FindSupportedSurfaceShader();
-        var m = new Material(shader);
+        var r = go.GetComponent<Renderer>(); if (r == null) return;
+        var m = new Material(FindSupportedSurfaceShader());
+
+        // Force opaque in URP (new Material() defaults to Transparent)
+        if (m.HasProperty("_Surface")) m.SetFloat("_Surface", 0f);
+        m.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
+        m.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
+        m.SetInt("_ZWrite",   1);
+        m.DisableKeyword("_SURFACE_TYPE_TRANSPARENT");
+        m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Geometry;
 
         if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", col);
-        if (m.HasProperty("_Color")) m.SetColor("_Color", col);
-        if (m.HasProperty("_Glossiness")) m.SetFloat("_Glossiness", glossy ? 0.65f : 0.10f);
-        if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", glossy ? 0.65f : 0.10f);
-        if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", 0f);
+        if (m.HasProperty("_Color"))     m.SetColor("_Color",     col);
+        if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.1f);
+        if (m.HasProperty("_Metallic"))   m.SetFloat("_Metallic",   0f);
 
         r.material = m;
     }

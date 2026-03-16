@@ -22,6 +22,12 @@ public class BoatMovement : MonoBehaviour
     private Vector3 _targetWorldPos;
     private bool _completionReported;
 
+    float GetWorldYOffset()
+    {
+        var fitter = GetComponent<BoatMeshFitter>();
+        return fitter != null ? fitter.WorldYOffset : 0f;
+    }
+
     // ── Initialisation ────────────────────────────────────────────────────────
 
     public void InitializePosition(Vector2Int gridPos)
@@ -41,7 +47,7 @@ public class BoatMovement : MonoBehaviour
             ? new Vector3(halfCell, 0f, 0f)
             : new Vector3(0f, 0f, halfCell);
 
-        transform.position = GridManager.Instance.GridToWorld(gridPos) + _gridOffset;
+        transform.position = GridManager.Instance.GridToWorld(gridPos) + _gridOffset + Vector3.up * GetWorldYOffset();
     }
 
     // ── Cell queries ──────────────────────────────────────────────────────────
@@ -81,7 +87,27 @@ public class BoatMovement : MonoBehaviour
 
         OnAnyBoatMoved?.Invoke(this);
 
-        _targetWorldPos = GridManager.Instance.GridToWorld(GridPosition) + _gridOffset;
+        _targetWorldPos = GridManager.Instance.GridToWorld(GridPosition) + _gridOffset + Vector3.up * GetWorldYOffset();
+        IsMoving = true;
+    }
+
+    // ── Auto-advance (path-clear exit) ───────────────────────────────────────
+
+    /// <summary>
+    /// Moves the boat one step in dir without firing OnAnyBoatMoved.
+    /// Used by GameManager's auto-advance so the move counter is not incremented.
+    /// </summary>
+    public void AutoMove(Vector2Int dir)
+    {
+        if (IsMoving) return;
+
+        GridManager.Instance.UnregisterBoat(this);
+        GridPosition = GridPosition + dir;
+        GridManager.Instance.RegisterBoat(this);
+
+        // Do NOT fire OnAnyBoatMoved — this is a silent, automatic step.
+
+        _targetWorldPos = GridManager.Instance.GridToWorld(GridPosition) + _gridOffset + Vector3.up * GetWorldYOffset();
         IsMoving = true;
     }
 

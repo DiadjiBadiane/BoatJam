@@ -15,10 +15,6 @@ public class GameManager : MonoBehaviour
     [Tooltip("Drag all LevelData assets here in order")]
     public LevelData[] levels;
 
-    [Header("Progress")]
-    [Range(1, 3)]
-    public int starsAwardedOnWin = 3;
-
     [Header("Auto-Advance")]
     [Tooltip("Seconds to wait between each auto-step when the hero path is clear")]
     [SerializeField] float autoAdvanceStepDelay = 0.18f;
@@ -65,10 +61,7 @@ public class GameManager : MonoBehaviour
 
     void OnAnyBoatMoved(BoatMovement movedBoat)
     {
-        // Don't start a second coroutine if one is already running
         if (_autoAdvanceRunning || _levelCompletionShown) return;
-
-        // Wait until the moving boat has finished its animation, then check
         StartCoroutine(CheckAndAutoAdvance());
     }
 
@@ -76,7 +69,6 @@ public class GameManager : MonoBehaviour
     {
         _autoAdvanceRunning = true;
 
-        // Wait for all boats to finish their current animation
         yield return new WaitUntil(() => !AnyBoatMoving());
 
         if (_levelCompletionShown) { _autoAdvanceRunning = false; yield break; }
@@ -92,25 +84,18 @@ public class GameManager : MonoBehaviour
 
         Debug.Log("[GameManager] Hero path is clear — auto-advancing!");
 
-        // Step the hero forward until it escapes
         Vector2Int exitDir = CurrentLevel.exitOnRight ? Vector2Int.right : Vector2Int.left;
 
         while (!_levelCompletionShown)
         {
-            // Wait for the previous step animation to finish
             yield return new WaitUntil(() => !hero.IsMoving);
 
             if (_levelCompletionShown) break;
-
-            // Has the hero already escaped?
             if (GridManager.Instance.HasHeroEscaped(hero)) break;
 
-            // Small delay between steps so it feels smooth, not instant
             yield return new WaitForSeconds(autoAdvanceStepDelay);
 
-            hero.TryMove(exitDir);
-
-            // Give it at least one frame to start moving
+            hero.AutoMove(exitDir);
             yield return null;
         }
 
@@ -131,7 +116,7 @@ public class GameManager : MonoBehaviour
         return false;
     }
 
-    // ── Existing Update (kept as safety net for edge-cases) ───────────────────
+    // ── Update (safety net) ───────────────────────────────────────────────────
 
     void Update()
     {
@@ -193,8 +178,6 @@ public class GameManager : MonoBehaviour
         StartCoroutine(FitCameraWhenReady(CurrentLevel.gridWidth, CurrentLevel.gridHeight));
     }
 
-    // ── Find fitter only within THIS GameManager's scene ─────────────────────
-
     ResponsiveCameraFitter FindFitterInMyScene()
     {
         foreach (var root in gameObject.scene.GetRootGameObjects())
@@ -228,7 +211,6 @@ public class GameManager : MonoBehaviour
             int gh = GridManager.Instance.height;
             if (gw != expectedW || gh != expectedH) continue;
 
-            // Grid dimensions match — find and fire the fitter
             var fitter = FindFitterInMyScene();
             if (fitter == null) yield break;
 
@@ -245,19 +227,25 @@ public class GameManager : MonoBehaviour
         if (f != null) f.FitNow();
     }
 
+    // ── Win / completion ──────────────────────────────────────────────────────
+
     public void OnLevelComplete()
     {
         if (_levelCompletionShown) return;
         _levelCompletionShown = true;
 
-        LevelProgress.SaveStars(CurrentLevelIndex, starsAwardedOnWin);
+        // Ask UIManager for the live move count, then let LevelData decide stars
+        int moves = uiManager != null ? uiManager.GetMoveCount() : int.MaxValue;
+        int stars  = CurrentLevel != null ? CurrentLevel.CalculateStars(moves) : 1;
+
+        LevelProgress.SaveStars(CurrentLevelIndex, stars);
         LevelProgress.UnlockNextLevel(CurrentLevelIndex);
 
         if (uiManager == null)
             uiManager = UIManager.Instance ?? FindObjectOfType<UIManager>();
 
         if (uiManager != null)
-            uiManager.ShowWinPanel();
+            uiManager.ShowWinPanel(stars);
         else
             Debug.LogError("GameManager.OnLevelComplete: UIManager not found!");
     }

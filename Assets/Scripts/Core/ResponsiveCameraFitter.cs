@@ -22,7 +22,9 @@ public class ResponsiveCameraFitter : MonoBehaviour
 
     [Header("Camera")]
     [SerializeField] bool  forceOrthographic = true;
-    [SerializeField] bool  forceTopDown      = true;
+    [SerializeField] bool  forceTopDown      = false;
+    [SerializeField, Range(35f, 89f)] float angledPitch = 65f;
+    [SerializeField] float angledYaw = 0f;
     [SerializeField] float cameraHeight      = 15f;
 
     [Header("Safety limits")]
@@ -71,7 +73,9 @@ public class ResponsiveCameraFitter : MonoBehaviour
         // ── Camera mode ───────────────────────────────────────────────────────
         if (forceOrthographic) _cam.orthographic = true;
         if (!_cam.orthographic) return;
-        if (forceTopDown) _cam.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+        _cam.transform.rotation = forceTopDown
+            ? Quaternion.Euler(90f, 0f, 0f)
+            : Quaternion.Euler(angledPitch, angledYaw, 0f);
 
         float cell   = Mathf.Max(0.01f, GridManager.Instance.cellSize);
         float worldW = gridW * cell;
@@ -103,7 +107,19 @@ public class ResponsiveCameraFitter : MonoBehaviour
 
         // ── Vertical shift: move grid into the available band ─────────────────
         float shift = (hudBottom - hudTop) * orthoSize;
-        _cam.transform.position = new Vector3(centreX, cameraHeight, centreZ - shift);
+        Vector3 target = new Vector3(centreX, 0f, centreZ - shift);
+
+        if (forceTopDown)
+        {
+            _cam.transform.position = new Vector3(target.x, cameraHeight, target.z);
+        }
+        else
+        {
+            Vector3 forward = _cam.transform.forward;
+            float absY = Mathf.Max(0.001f, Mathf.Abs(forward.y));
+            float distance = cameraHeight / absY;
+            _cam.transform.position = target - forward * distance;
+        }
 
         _fitted     = true;
         _lastScreen = new Vector2Int(Screen.width, Screen.height);

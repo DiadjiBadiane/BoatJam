@@ -409,7 +409,9 @@ MonoBehaviour:
   hudBottomLandscape: 0.2
   paddingFraction: 0.1
   forceOrthographic: 1
-  forceTopDown: 1
+  forceTopDown: 0
+  angledPitch: 65
+  angledYaw: 0
   cameraHeight: 15
   minOrthoSize: 2
   maxOrthoSize: 40
@@ -645,7 +647,7 @@ Transform:
   m_GameObject: {fileID: 1097689573}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.26863, y: 0, z: 0.33835}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -663,8 +665,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d4d8e08fc1aad344ba60a36aea991e91, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LevelLoader
-  heroBoardPrefab: {fileID: 7897725232452775944, guid: c703be94a4fcb42408379fb89d76b725, type: 3}
-  boatSize2Prefab: {fileID: 7897725232452775944, guid: c703be94a4fcb42408379fb89d76b725, type: 3}
+  heroBoardPrefab: {fileID: 3691402527098106249, guid: 01cde16f53dc18b4ca0c144f6dd055ed, type: 3}
+  boatSize2Prefab: {fileID: 844043688144586807, guid: 68974c67d6aedb440b34cf6378b44287, type: 3}
+  enforceRuntimeBoatFit: 1
+  runtimeScaleFactor: 1.15
+  heroScaleFactor: 1.1
+  runtimeColliderHeight: 0.4
   harborGrid: {fileID: 0}
 --- !u!1 &1619849090
 GameObject:
@@ -770,7 +776,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: cc9ecd14ab86462e8e3a58fca3926760, type: 2}
   - {fileID: 11400000, guid: 63e922bc82c948ba9a432da44e71d8f5, type: 2}
   - {fileID: 11400000, guid: 128cb9e35a904d68abbe84c96c287432, type: 2}
-  starsAwardedOnWin: 3
+  autoAdvanceStepDelay: 0.18
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
