@@ -126,15 +126,10 @@ public class GridManager : MonoBehaviour
     /// </summary>
     public bool IsValidPlacement(BoatMovement boat, Vector2Int gridPos)
     {
-        // Check each cell the boat would occupy
-        for (int i = 0; i < boat.size; i++)
-        {
-            Vector2Int cell = new Vector2Int(
-                gridPos.x + (boat.isHorizontal ? i : 0),
-                gridPos.y + (boat.isHorizontal ? 0 : i));
+        for (int dx = 0; dx < boat.SpanX; dx++)
+        for (int dy = 0; dy < boat.SpanY; dy++)
+            if (!InBounds(new Vector2Int(gridPos.x + dx, gridPos.y + dy))) return false;
 
-            if (!InBounds(cell)) return false;  // Overflow detected
-        }
         return true;
     }
 
@@ -146,18 +141,10 @@ public class GridManager : MonoBehaviour
     {
         Vector2Int adjusted = gridPos;
 
-        if (boat.isHorizontal)
-        {
-            // Clamp so boat doesn't overflow right edge
-            int maxX = width - boat.size;
-            adjusted.x = Mathf.Clamp(adjusted.x, 0, maxX);
-        }
-        else
-        {
-            // Clamp so boat doesn't overflow top edge
-            int maxY = height - boat.size;
-            adjusted.y = Mathf.Clamp(adjusted.y, 0, maxY);
-        }
+        int maxX = width - boat.SpanX;
+        int maxY = height - boat.SpanY;
+        adjusted.x = Mathf.Clamp(adjusted.x, 0, maxX);
+        adjusted.y = Mathf.Clamp(adjusted.y, 0, maxY);
 
         return adjusted;
     }

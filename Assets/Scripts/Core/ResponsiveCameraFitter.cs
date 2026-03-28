@@ -20,6 +20,10 @@ public class ResponsiveCameraFitter : MonoBehaviour
     [Header("Padding — extra breathing room around the grid")]
     [SerializeField, Range(0f, 0.5f)] float paddingFraction = 0.10f;
 
+    [Header("Adaptive framing")]
+    [Tooltip("Extra fill applied on larger boards (e.g. 8x8) so the grid appears less zoomed out.")]
+    [SerializeField, Range(0f, 0.2f)] float largeGridFillBoost = 0.08f;
+
     [Header("Camera")]
     [SerializeField] bool  forceOrthographic = true;
     [SerializeField] bool  forceTopDown      = false;
@@ -96,7 +100,10 @@ public class ResponsiveCameraFitter : MonoBehaviour
         float hudBottom = portrait ? hudBottomPortrait : hudBottomLandscape;
         float availFrac = Mathf.Max(0.2f, 1f - hudTop - hudBottom);
 
-        float pad = 1f + paddingFraction;
+        // Apply a small automatic zoom-in on larger boards to avoid excessive empty margins.
+        float largeGridT = Mathf.InverseLerp(6f, 8f, Mathf.Max(gridW, gridH));
+        float effectivePadding = Mathf.Max(0f, paddingFraction - (largeGridFillBoost * largeGridT));
+        float pad = 1f + effectivePadding;
 
         // ── OrthoSize: fit height AND width, take the larger ──────────────────
         float sizeForH  = (worldH * pad) / (2f * availFrac);
@@ -128,7 +135,7 @@ public class ResponsiveCameraFitter : MonoBehaviour
                   $"screen={Screen.width}x{Screen.height} aspect={aspect:F3} " +
                   $"grid={gridW}x{gridH} cell={cell} worldW={worldW:F2} worldH={worldH:F2} " +
                   $"centre=({centreX:F2},{centreZ:F2}) availFrac={availFrac:F2} " +
-                  $"sizeH={sizeForH:F2} sizeW={sizeForW:F2} ortho={orthoSize:F2} " +
+                  $"pad={effectivePadding:F3} sizeH={sizeForH:F2} sizeW={sizeForW:F2} ortho={orthoSize:F2} " +
                   $"shift={shift:F2} camPos={_cam.transform.position}");
     }
 

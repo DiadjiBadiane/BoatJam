@@ -108,9 +108,10 @@ public class MainMenuManager : MonoBehaviour
         if (settingsButton    == null) settingsButton    = Find<Button>("SettingsButton");
         if (creditsButton     == null) creditsButton     = Find<Button>("CreditsButton");
         if (quitButton        == null) quitButton        = Find<Button>("QuitButton");
-        if (homePanel        == null)  homePanel        = GameObject.Find("HomePanel");
-        if (levelSelectPanel == null)  levelSelectPanel = GameObject.Find("LevelSelectPanel");
+        if (homePanel         == null) homePanel         = GameObject.Find("HomePanel");
+        if (levelSelectPanel  == null) levelSelectPanel  = GameObject.Find("LevelSelectPanel");
 
+        // Auto-find settings controls if SettingsScreenBuilder hasn't wired them yet
         if (levelButtonContainer == null && levelSelectPanel != null)
         {
             Transform c = levelSelectPanel.transform.Find("Scroll View/Viewport/Content")
@@ -125,6 +126,7 @@ public class MainMenuManager : MonoBehaviour
         EnsureRuntimeLevelButtonPrefab();
         NormalizeMenuCanvas();
         NormalizePanelRect(levelSelectPanel);
+        EnsureGeneratedScreens();
 
         RebindButtonListeners();
 
@@ -132,6 +134,16 @@ public class MainMenuManager : MonoBehaviour
         musicSlider    ?.onValueChanged.AddListener(v => PlayerPrefs.SetFloat(MUSIC_VOL_KEY, v));
         sfxSlider      ?.onValueChanged.AddListener(v => PlayerPrefs.SetFloat(SFX_VOL_KEY,   v));
         vibrationToggle?.onValueChanged.AddListener(v => PlayerPrefs.SetInt(VIBRATION_KEY, v ? 1 : 0));
+
+        // Defer ShowPanel one frame so all builder Start() methods have run
+        StartCoroutine(ShowHomePanelNextFrame());
+    }
+
+    System.Collections.IEnumerator ShowHomePanelNextFrame()
+    {
+        yield return null; // wait one frame — lets all Start() methods finish
+
+        if (homePanel         == null) homePanel         = GameObject.Find("HomePanel");
 
         ShowPanel(homePanel);
     }
@@ -189,15 +201,69 @@ public class MainMenuManager : MonoBehaviour
     static T Find<T>(string name) where T : Component
         => GameObject.Find(name)?.GetComponent<T>();
 
+    static void SetPanelActive(GameObject panel, bool active)
+    {
+        // Unity "missing" references can be non-null at CLR level; guard with Unity null semantics.
+        if (panel != null)
+            panel.SetActive(active);
+    }
+
+    Canvas ResolveMenuCanvas()
+    {
+        if (homePanel != null)
+        {
+            var panelCanvas = homePanel.GetComponentInParent<Canvas>();
+            if (panelCanvas != null) return panelCanvas;
+        }
+
+        return FindObjectOfType<Canvas>();
+    }
+
+    T EnsureBuilderOnCanvas<T>() where T : Component
+    {
+        var builder = FindObjectOfType<T>();
+        if (builder != null)
+            return builder;
+
+        var canvas = ResolveMenuCanvas();
+        if (canvas == null)
+        {
+            Debug.LogError($"MainMenuManager: Cannot create {typeof(T).Name} because no Canvas was found in the scene.");
+            return null;
+        }
+
+        builder = canvas.GetComponent<T>();
+        if (builder == null)
+            builder = canvas.gameObject.AddComponent<T>();
+
+        return builder;
+    }
+
+    void EnsureGeneratedScreens()
+    {
+        var settingsBuilder = EnsureBuilderOnCanvas<SettingsScreenBuilder>();
+        if (settingsBuilder != null)
+            settingsPanel = settingsBuilder.EnsureBuilt();
+
+        var creditsBuilder = EnsureBuilderOnCanvas<CreditsScreenBuilder>();
+        if (creditsBuilder != null)
+            creditsPanel = creditsBuilder.EnsureBuilt();
+    }
+
     // ── Navigation ────────────────────────────────────────────────────────────
 
     void ShowPanel(GameObject target)
     {
-        if (target == null) { homePanel?.SetActive(true); return; }
-        homePanel        ?.SetActive(false);
-        settingsPanel    ?.SetActive(false);
-        creditsPanel     ?.SetActive(false);
-        levelSelectPanel ?.SetActive(false);
+        if (target == null)
+        {
+            SetPanelActive(homePanel, true);
+            return;
+        }
+
+        SetPanelActive(homePanel, false);
+        SetPanelActive(settingsPanel, false);
+        SetPanelActive(creditsPanel, false);
+        SetPanelActive(levelSelectPanel, false);
         target.SetActive(true);
     }
 
@@ -229,9 +295,71 @@ public class MainMenuManager : MonoBehaviour
     }
 
     public void CloseLevelSelect() => ShowPanel(homePanel);
-    public void OpenSettings()     => ShowPanel(settingsPanel);
+    public void OpenSettings()
+    {
+        var builder = EnsureBuilderOnCanvas<SettingsScreenBuilder>();
+        if (builder != null)
+            settingsPanel = builder.EnsureBuilt();
+
+        if (settingsPanel == null)
+        {
+            Debug.LogError("MainMenuManager.OpenSettings: SettingsPanel is null. Ensure SettingsScreenBuilder is enabled on the menu Canvas.");
+            return;
+        }
+
+        if (settingsCloseButton != null)
+            BindButton(settingsCloseButton, CloseSettings);
+
+        NormalizePanelRect(settingsPanel);
+        ShowPanel(settingsPanel);
+        settingsPanel.transform.SetAsLastSibling();
+
+        Canvas.ForceUpdateCanvases();
+
+        var viewport = settingsPanel.transform.Find("ScrollView/Viewport") as RectTransform;
+        var content = settingsPanel.transform.Find("ScrollView/Viewport/Content") as RectTransform;
+        if (viewport != null)
+            LayoutRebuilder.ForceRebuildLayoutImmediate(viewport);
+        if (content != null)
+            LayoutRebuilder.ForceRebuildLayoutImmediate(content);
+
+        var scroll = settingsPanel.transform.Find("ScrollView")?.GetComponent<ScrollRect>();
+        if (scroll != null)
+            scroll.verticalNormalizedPosition = 1f;
+    }
     public void CloseSettings()    { PlayerPrefs.Save(); ShowPanel(homePanel); }
-    public void OpenCredits()      => ShowPanel(creditsPanel);
+    public void OpenCredits()
+    {
+        var builder = EnsureBuilderOnCanvas<CreditsScreenBuilder>();
+        if (builder != null)
+            creditsPanel = builder.EnsureBuilt();
+
+        if (creditsPanel == null)
+        {
+            Debug.LogError("MainMenuManager.OpenCredits: CreditsPanel is null. Ensure CreditsScreenBuilder is available on the menu Canvas.");
+            return;
+        }
+
+        if (creditsCloseButton != null)
+            BindButton(creditsCloseButton, CloseCredits);
+
+        NormalizePanelRect(creditsPanel);
+        ShowPanel(creditsPanel);
+        creditsPanel.transform.SetAsLastSibling();
+
+        Canvas.ForceUpdateCanvases();
+
+        var viewport = creditsPanel.transform.Find("ScrollView/Viewport") as RectTransform;
+        var content = creditsPanel.transform.Find("ScrollView/Viewport/Content") as RectTransform;
+        if (viewport != null)
+            LayoutRebuilder.ForceRebuildLayoutImmediate(viewport);
+        if (content != null)
+            LayoutRebuilder.ForceRebuildLayoutImmediate(content);
+
+        var scroll = creditsPanel.transform.Find("ScrollView")?.GetComponent<ScrollRect>();
+        if (scroll != null)
+            scroll.verticalNormalizedPosition = 1f;
+    }
     public void CloseCredits()     => ShowPanel(homePanel);
 
     public void OnQuitPressed()
@@ -597,7 +725,6 @@ public class MainMenuManager : MonoBehaviour
         if (canvas.GetComponent<SafeAreaFitter>() == null)
             canvas.gameObject.AddComponent<SafeAreaFitter>();
     }
-
     // ── UI building utilities ─────────────────────────────────────────────────
 
     /// Create an empty RectTransform child.

@@ -1,10 +1,16 @@
 ﻿// Assets/Scripts/Core/GameManager.cs
 using System.Collections;
+using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
+    const int FixedHeroCol = 1;
+    const int FixedHeroRow = 4;
+    const int FixedExitRow = 4;
+    const bool FixedExitOnRight = true;
+
     public static GameManager Instance { get; private set; }
 
     [Header("References")]
@@ -44,14 +50,48 @@ public class GameManager : MonoBehaviour
     {
         uiManager = UIManager.Instance ?? FindObjectOfType<UIManager>();
 
-        var loaded = Resources.LoadAll<LevelData>("Levels");
-        string info = $"Resources.LoadAll found {loaded.Length} level(s): ";
-        foreach (var l in loaded)
-            info += $"{l.name}[{l.gridWidth}x{l.gridHeight}, boats={l.boats.Count}] ";
-        Debug.Log(info);
+        EnsureLevelsLoadedFromResources();
 
         int startIndex = PlayerPrefs.GetInt("SelectedLevel", 0);
         LoadLevel(startIndex);
+    }
+
+    void EnsureLevelsLoadedFromResources()
+    {
+        var loaded = Resources.LoadAll<LevelData>("Levels");
+        if (loaded == null || loaded.Length == 0)
+            return;
+
+        Array.Sort(loaded, (a, b) => GetLevelOrder(a).CompareTo(GetLevelOrder(b)));
+        levels = loaded;
+
+        string info = $"[GameManager] Loaded {levels.Length} level(s) from Resources: ";
+        for (int i = 0; i < levels.Length; i++)
+            info += $"{levels[i].name}[{levels[i].gridWidth}x{levels[i].gridHeight}, boats={levels[i].boats.Count}] ";
+        Debug.Log(info);
+    }
+
+    int GetLevelOrder(LevelData level)
+    {
+        if (level == null || string.IsNullOrEmpty(level.name)) return int.MaxValue;
+
+        string s = level.name;
+        int value = 0;
+        bool foundDigit = false;
+        for (int i = 0; i < s.Length; i++)
+        {
+            if (char.IsDigit(s[i]))
+            {
+                foundDigit = true;
+                value = value * 10 + (s[i] - '0');
+            }
+            else if (foundDigit)
+            {
+                break;
+            }
+        }
+
+        return foundDigit ? value : int.MaxValue;
     }
 
     void OnEnable()  => BoatMovement.OnAnyBoatMoved += OnAnyBoatMoved;
@@ -120,7 +160,7 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
-        if (_levelCompletionShown || CurrentLevel == null) return;
+        if (_levelCompletionShown || CurrentLevel == null || GridManager.Instance == null) return;
 
         _framesSinceLoad++;
         if (_framesSinceLoad < 3) return;
@@ -141,6 +181,8 @@ public class GameManager : MonoBehaviour
 
     bool HeroTouchingExitLane(BoatMovement hero)
     {
+        if (hero == null || GridManager.Instance == null) return false;
+
         var cells = hero.GetOccupiedCells();
         foreach (var cell in cells)
         {
@@ -163,6 +205,7 @@ public class GameManager : MonoBehaviour
         index = Mathf.Clamp(index, 0, levels.Length - 1);
         CurrentLevelIndex     = index;
         CurrentLevel          = levels[index];
+        NormalizeLevelLayout(CurrentLevel);
         _levelCompletionShown = false;
         _framesSinceLoad      = 0;
         _autoAdvanceRunning   = false;
@@ -176,6 +219,108 @@ public class GameManager : MonoBehaviour
         uiManager?.ShowGame(index + 1);
 
         StartCoroutine(FitCameraWhenReady(CurrentLevel.gridWidth, CurrentLevel.gridHeight));
+    }
+
+    void NormalizeLevelLayout(LevelData level)
+    {
+        if (level == null)
+            return;
+
+        level.exitOnRight = FixedExitOnRight;
+        level.exitRow = Mathf.Clamp(FixedExitRow, 0, Mathf.Max(0, level.gridHeight - 1));
+
+        if (level.boats == null)
+            level.boats = new System.Collections.Generic.List<BoatData>();
+
+        BoatData hero = null;
+        for (int i = 0; i < level.boats.Count; i++)
+        {
+            if (level.boats[i] != null && level.boats[i].isHero)
+            {
+                hero = level.boats[i];
+                break;
+            }
+        }
+
+        if (hero == null)
+        {
+            hero = new BoatData { id = "hero", isHero = true };
+            level.boats.Insert(0, hero);
+        }
+
+        hero.id = "hero";
+        hero.isHero = true;
+        hero.isHorizontal = true;
+        hero.size = 2;
+        hero.width = 1;
+        hero.col = Mathf.Clamp(FixedHeroCol, 0, Mathf.Max(0, level.gridWidth - hero.size));
+        hero.row = Mathf.Clamp(FixedHeroRow, 0, Mathf.Max(0, level.gridHeight - hero.width));
+
+        var occupied = new System.Collections.Generic.HashSet<Vector2Int>();
+        StampBoatCells(hero, occupied);
+
+        for (int i = 0; i < level.boats.Count; i++)
+        {
+            var boat = level.boats[i];
+            if (boat == null || boat.isHero)
+                continue;
+
+            boat.size = Mathf.Max(1, boat.size);
+            boat.width = Mathf.Max(1, boat.width);
+
+            int spanX = boat.isHorizontal ? boat.size : boat.width;
+            int spanY = boat.isHorizontal ? boat.width : boat.size;
+            boat.col = Mathf.Clamp(boat.col, 0, Mathf.Max(0, level.gridWidth - spanX));
+            boat.row = Mathf.Clamp(boat.row, 0, Mathf.Max(0, level.gridHeight - spanY));
+
+            if (!CanPlaceBoat(boat, occupied, level.gridWidth, level.gridHeight))
+                RepositionBoat(boat, occupied, level.gridWidth, level.gridHeight);
+
+            StampBoatCells(boat, occupied);
+        }
+    }
+
+    static bool CanPlaceBoat(BoatData boat, System.Collections.Generic.HashSet<Vector2Int> occupied, int gridWidth, int gridHeight)
+    {
+        int spanX = boat.isHorizontal ? boat.size : boat.width;
+        int spanY = boat.isHorizontal ? boat.width : boat.size;
+
+        if (boat.col < 0 || boat.row < 0 || boat.col + spanX > gridWidth || boat.row + spanY > gridHeight)
+            return false;
+
+        for (int dx = 0; dx < spanX; dx++)
+        for (int dy = 0; dy < spanY; dy++)
+            if (occupied.Contains(new Vector2Int(boat.col + dx, boat.row + dy)))
+                return false;
+
+        return true;
+    }
+
+    static void RepositionBoat(BoatData boat, System.Collections.Generic.HashSet<Vector2Int> occupied, int gridWidth, int gridHeight)
+    {
+        int spanX = boat.isHorizontal ? boat.size : boat.width;
+        int spanY = boat.isHorizontal ? boat.width : boat.size;
+
+        for (int row = 0; row <= gridHeight - spanY; row++)
+        {
+            for (int col = 0; col <= gridWidth - spanX; col++)
+            {
+                boat.col = col;
+                boat.row = row;
+                if (CanPlaceBoat(boat, occupied, gridWidth, gridHeight))
+                    return;
+            }
+        }
+    }
+
+    static void StampBoatCells(BoatData boat, System.Collections.Generic.HashSet<Vector2Int> occupied)
+    {
+        int spanX = boat.isHorizontal ? boat.size : boat.width;
+        int spanY = boat.isHorizontal ? boat.width : boat.size;
+
+        for (int dx = 0; dx < spanX; dx++)
+        for (int dy = 0; dy < spanY; dy++)
+            occupied.Add(new Vector2Int(boat.col + dx, boat.row + dy));
     }
 
     ResponsiveCameraFitter FindFitterInMyScene()

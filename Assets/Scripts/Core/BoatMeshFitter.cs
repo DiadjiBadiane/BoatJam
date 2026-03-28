@@ -15,6 +15,9 @@ public class BoatMeshFitter : MonoBehaviour
     [Tooltip("How many grid cells this boat spans along its movement axis.")]
     [SerializeField] int cellCount = 2;
 
+    [Tooltip("How many grid cells this boat spans perpendicular to its movement axis.")]
+    [SerializeField] int cellWidth = 1;
+
     [Tooltip("Scale multiplier after fitting — tweak for breathing room.")]
     [SerializeField, Range(0.5f, 4.0f)] float scaleFactor = 0.88f;
 
@@ -33,6 +36,7 @@ public class BoatMeshFitter : MonoBehaviour
     [SerializeField] float waterClearance = 0.02f;
 
     public float WorldYOffset { get; private set; }
+    public Vector3 WorldCenterOffsetXZ { get; private set; }
 
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -52,9 +56,10 @@ public class BoatMeshFitter : MonoBehaviour
     /// <summary>
     /// Runtime hook for loaders to enforce consistent visual sizing.
     /// </summary>
-    public void ApplyFitSettings(int newCellCount, float newScaleFactor, float newColliderHeight)
+    public void ApplyFitSettings(int newCellCount, int newCellWidth, float newScaleFactor, float newColliderHeight)
     {
         cellCount = Mathf.Max(1, newCellCount);
+        cellWidth = Mathf.Max(1, newCellWidth);
         scaleFactor = Mathf.Max(0.1f, newScaleFactor);
         colliderHeight = Mathf.Max(0.01f, newColliderHeight);
 
@@ -116,22 +121,26 @@ public class BoatMeshFitter : MonoBehaviour
             return;
         }
 
-        float cell         = GridManager.Instance != null ? GridManager.Instance.cellSize : 1f;
-        float targetLength = cell * cellCount * scaleFactor;
-        float meshLength   = Mathf.Max(bounds.size.x, bounds.size.z);
+        float cell        = GridManager.Instance != null ? GridManager.Instance.cellSize : 1f;
+        float targetLong  = cell * cellCount * scaleFactor;
+        float targetShort = cell * cellWidth * scaleFactor;
+        float meshLong    = Mathf.Max(bounds.size.x, bounds.size.z);
+        float meshShort   = Mathf.Min(bounds.size.x, bounds.size.z);
 
-        if (meshLength <= 0f)
+        if (meshLong <= 0f)
         {
             Debug.LogWarning($"[BoatMeshFitter] Mesh length is zero on '{name}' — skipping scale fit.");
             return;
         }
 
-        float s = targetLength / meshLength;
+        float byLong  = targetLong / meshLong;
+        float byShort = meshShort > 0f ? targetShort / meshShort : byLong;
+        float s = Mathf.Min(byLong, byShort);
         transform.localScale = Vector3.one * s;
 
         UpdateWorldYOffset(filters);
 
-        Debug.Log($"[BoatMeshFitter] '{name}': meshLen={meshLength:F3} target={targetLength:F3} scale={s:F4}");
+        Debug.Log($"[BoatMeshFitter] '{name}': meshLong={meshLong:F3} meshShort={meshShort:F3} targetLong={targetLong:F3} targetShort={targetShort:F3} scale={s:F4}");
     }
 
     // ── Step 3: rebuild collider to match grid footprint ─────────────────────
@@ -148,20 +157,26 @@ public class BoatMeshFitter : MonoBehaviour
 
         var  bm           = GetComponent<BoatMovement>();
         int  size         = bm != null ? bm.size         : cellCount;
+        int  width        = bm != null ? bm.WidthCells   : cellWidth;
         bool isHorizontal = bm != null ? bm.isHorizontal : true;
 
         float longSide  = cell * size;
-        float shortSide = cell;
+        float shortSide = cell * width;
+
+        // Add a generous margin on every side so clicks near the edge of the
+        // boat — or slightly outside it — still register. The collider is kept
+        // invisible and does not affect gameplay, so a bigger hitbox only helps.
+        float margin = cell * 0.25f;
 
         var box    = gameObject.AddComponent<BoxCollider>();
         box.center = Vector3.zero;
         box.size   = isHorizontal
-            ? new Vector3(longSide  / Mathf.Max(0.001f, transform.lossyScale.x),
-                          colliderHeight / Mathf.Max(0.001f, transform.lossyScale.y),
-                          shortSide / Mathf.Max(0.001f, transform.lossyScale.z))
-            : new Vector3(shortSide / Mathf.Max(0.001f, transform.lossyScale.x),
-                          colliderHeight / Mathf.Max(0.001f, transform.lossyScale.y),
-                          longSide  / Mathf.Max(0.001f, transform.lossyScale.z));
+            ? new Vector3((longSide  + margin) / Mathf.Max(0.001f, transform.lossyScale.x),
+                          Mathf.Max(colliderHeight, cell * 0.6f) / Mathf.Max(0.001f, transform.lossyScale.y),
+                          (shortSide + margin) / Mathf.Max(0.001f, transform.lossyScale.z))
+            : new Vector3((shortSide + margin) / Mathf.Max(0.001f, transform.lossyScale.x),
+                          Mathf.Max(colliderHeight, cell * 0.6f) / Mathf.Max(0.001f, transform.lossyScale.y),
+                          (longSide  + margin) / Mathf.Max(0.001f, transform.lossyScale.z));
     }
 
     // ── Helper: transform local mesh bounds into world space ──────────────────
@@ -206,8 +221,16 @@ public class BoatMeshFitter : MonoBehaviour
         if (!foundValidBounds)
         {
             WorldYOffset = 0f;
+            WorldCenterOffsetXZ = Vector3.zero;
             return;
         }
+
+        // Compensates off-center prefab pivots so visual hull center sits on the
+        // logical grid footprint center.
+        WorldCenterOffsetXZ = new Vector3(
+            bounds.center.x - transform.position.x,
+            0f,
+            bounds.center.z - transform.position.z);
 
         WorldYOffset = Mathf.Max(waterClearance, -bounds.min.y + waterClearance);
     }

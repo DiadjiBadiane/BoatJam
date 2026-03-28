@@ -73,34 +73,33 @@ public class HomeScreenBuilder : MonoBehaviour
         var bg = NewGO("Background", root);
         Stretch(bg);
 
-        // Sky-to-sea gradient via stacked layers
-        Layer("Sky_Top", bg.transform, 0.55f, 1.0f,  SKY_TOP);
-        Layer("Sky_Mid", bg.transform, 0.30f, 0.65f, SKY_MID);
-        Layer("Sky_Low", bg.transform, 0.10f, 0.45f, SKY_LOW);
-        Layer("Sea_Mid", bg.transform, 0.00f, 0.25f, SEA_MID);
-        Layer("Sea_Bot", bg.transform, 0.00f, 0.12f, SEA_BOT);
+        // ── Uniform sky: single clean #0ea5e9 fills everything above the button zone ──
+        // This matches the HTML's solid sky feel. The "sea" is just a slightly deeper
+        // band at the very bottom (below the buttons, ~bottom 20% of screen).
+        Layer("Sky",     bg.transform, 0.20f, 1.0f,  SKY_TOP);   // solid bright sky-blue
+        Layer("Sea_Mid", bg.transform, 0.00f, 0.28f, SKY_MID);   // one step darker at waterline
+        Layer("Sea_Bot", bg.transform, 0.00f, 0.10f, SEA_MID);   // deep navy at very bottom edge
 
         // Clouds
         MakeCloud(bg.transform, "Cloud1", 140f, 40f, -200f, 0.88f, 22f,  0f);
         MakeCloud(bg.transform, "Cloud2",  90f, 28f, -150f, 0.82f, 30f, -8f);
         MakeCloud(bg.transform, "Cloud3", 110f, 35f,  100f, 0.90f, 26f,-14f);
 
-        // Waves
-        MakeWave(bg.transform, "Wave1", 0.47f,  80f, new Color(0.22f,0.74f,0.98f,0.25f),  4f,   0f);
-        MakeWave(bg.transform, "Wave2", 0.43f, 100f, new Color(0.055f,0.647f,0.914f,0.25f),5f,  -1f);
-        MakeWave(bg.transform, "Wave3", 0.41f,  60f, new Color(0.49f,0.83f,0.99f,0.25f),  3.5f, -2f);
+        // Waves — kept subtle, at the sky/sea transition
+        MakeWave(bg.transform, "Wave1", 0.26f,  70f, new Color(0.22f,0.74f,0.98f,0.20f), 4f,   0f);
+        MakeWave(bg.transform, "Wave2", 0.23f,  90f, new Color(0.055f,0.647f,0.914f,0.20f),5f, -1f);
 
         // Glint
         var g  = NewGO("Glint", bg.transform);
         var gr = g.GetComponent<RectTransform>();
-        gr.anchorMin = new Vector2(0.5f, 0.42f); gr.anchorMax = new Vector2(0.5f, 0.42f);
+        gr.anchorMin = new Vector2(0.5f, 0.24f); gr.anchorMax = new Vector2(0.5f, 0.24f);
         gr.pivot     = new Vector2(0.5f, 0.5f);  gr.sizeDelta = new Vector2(200f, 6f);
         var gi = g.AddComponent<Image>(); gi.color = GLINT_CLR; Round(gi);
         g.AddComponent<GlintPulse>();
 
         // Deco boats
-        MakeDecoBoat(bg.transform, "DecoBoat1", "⛵", 28f, new Vector2(0.08f, 0.57f), 4f,  0f);
-        MakeDecoBoat(bg.transform, "DecoBoat2", "🚤", 20f, new Vector2(0.88f, 0.52f), 5f, -2f);
+        MakeDecoBoat(bg.transform, "DecoBoat1", "⛵", 28f, new Vector2(0.08f, 0.35f), 4f,  0f);
+        MakeDecoBoat(bg.transform, "DecoBoat2", "🚤", 20f, new Vector2(0.88f, 0.30f), 5f, -2f);
     }
 
     void Layer(string name, Transform parent, float minY, float maxY, Color color)
@@ -156,26 +155,144 @@ public class HomeScreenBuilder : MonoBehaviour
     {
         var c = NewGO("Content", root);
         Stretch(c);
-        var vl = c.AddComponent<VerticalLayoutGroup>();
-        vl.childAlignment       = TextAnchor.UpperCenter;
-        vl.spacing              = 0f;
-        vl.padding              = new RectOffset(
-            Mathf.RoundToInt(SIDE_PAD), Mathf.RoundToInt(SIDE_PAD),
-            Mathf.RoundToInt(TOP_PAD),  Mathf.RoundToInt(BOTTOM_PAD));
-        vl.childControlWidth      = true;
-        vl.childControlHeight     = false;
+        // No layout group — we anchor logo to top and buttons to bottom independently,
+        // exactly like the HTML mockup (logo area top ~10%, buttons bottom ~30%).
+
+        BuildLogoAnchored(c.transform);
+        BuildButtonsAnchored(c.transform);
+    }
+
+    // Logo pinned to the top of the screen (anchors 0.62 → 1.0 in Y)
+    void BuildLogoAnchored(Transform parent)
+    {
+        var area = NewGO("LogoArea", parent);
+        var rt   = area.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0f, 0.60f);
+        rt.anchorMax = new Vector2(1f, 1.00f);
+        rt.offsetMin = new Vector2(SIDE_PAD,  0f);
+        rt.offsetMax = new Vector2(-SIDE_PAD, -TOP_PAD);
+
+        var vl = area.AddComponent<VerticalLayoutGroup>();
+        vl.childAlignment        = TextAnchor.UpperCenter;
+        vl.spacing               = 6f;
+        vl.padding               = new RectOffset(0, 0, Mathf.RoundToInt(TOP_PAD), 0);
+        vl.childControlWidth     = true;
+        vl.childControlHeight    = false;
+        vl.childForceExpandWidth = true;
+        vl.childForceExpandHeight = false;
+
+        // Boat icon
+        var boatGO  = NewGO("BoatIcon", area.transform); LE(boatGO, 88f);
+        var boatImg = boatGO.AddComponent<Image>();
+        boatImg.color = Color.white; boatImg.preserveAspect = true;
+        var bob = boatGO.AddComponent<Bobber>(); bob.amplitude = 8f; bob.tiltDeg = 3f; bob.duration = 3f;
+
+        // Title
+        var titleGO  = NewGO("Title", area.transform); LE(titleGO, 64f);
+        var titleTMP = titleGO.AddComponent<TextMeshProUGUI>();
+        titleTMP.text = "BOAT JAM"; titleTMP.fontSize = 82f;
+        titleTMP.fontStyle = FontStyles.Bold; titleTMP.color = Color.white;
+        titleTMP.alignment = TextAlignmentOptions.Center;
+        titleTMP.outlineWidth = 0.25f; titleTMP.outlineColor = new Color32(3, 105, 161, 255);
+
+        // Subtitle
+        var subGO  = NewGO("Subtitle", area.transform); LE(subGO, 22f);
+        var subTMP = subGO.AddComponent<TextMeshProUGUI>();
+        subTMP.text = "HARBOR ESCAPE"; subTMP.fontSize = 29f;
+        subTMP.fontStyle = FontStyles.Bold; subTMP.color = new Color(1f,1f,1f,0.65f);
+        subTMP.alignment = TextAlignmentOptions.Center; subTMP.characterSpacing = 4f;
+
+        // Stars — sprite images loaded from Assets/Resources/star/
+        // Name your star PNG "star.png" (or "star_filled.png") in that folder,
+        // with Texture Type = Sprite (2D and UI).
+        var starsGO = NewGO("Stars", area.transform); LE(starsGO, 44f);
+        var hl = starsGO.AddComponent<HorizontalLayoutGroup>();
+        hl.childAlignment = TextAnchor.MiddleCenter; hl.spacing = 10f;
+        hl.childControlWidth = false; hl.childControlHeight = false;
+        hl.childForceExpandWidth = false; hl.childForceExpandHeight = false;
+        var starSprite = Resources.Load<Sprite>("star/star")
+                      ?? Resources.Load<Sprite>("star/star_filled")
+                      ?? Resources.Load<Sprite>("star/Star")
+                      ?? Resources.Load<Sprite>("star/Star_filled");
+        for (int i = 0; i < 5; i++)
+        {
+            var s   = NewGO($"Star{i}", starsGO.transform);
+            var srt = s.GetComponent<RectTransform>();
+            srt.sizeDelta = new Vector2(36f, 36f);
+            var sImg = s.AddComponent<Image>();
+            sImg.color          = STAR_CLR;
+            sImg.preserveAspect = true;
+            if (starSprite != null) sImg.sprite = starSprite;
+            // If no sprite found, falls back to a bright yellow square — still clearly visible
+        }
+    }
+    void BuildButtonsAnchored(Transform parent)
+    {
+        float totalBtnH  = BTN_PLAY_H + BTN_GAP + BTN_SEC_H + BTN_GAP + BTN_ROW_H;
+        float versionH   = VERSION_PAD + VERSION_H;
+
+        var wrapper = NewGO("Buttons", parent);
+        var wrt     = wrapper.GetComponent<RectTransform>();
+        wrt.anchorMin = new Vector2(0f, 0.00f);
+        wrt.anchorMax = new Vector2(1f, 0.42f);
+        wrt.offsetMin = new Vector2(SIDE_PAD,  BOTTOM_PAD);
+        wrt.offsetMax = new Vector2(-SIDE_PAD, 0f);
+
+        var vl = wrapper.AddComponent<VerticalLayoutGroup>();
+        vl.childAlignment        = TextAnchor.LowerCenter;   // stick children to the bottom
+        vl.spacing               = BTN_GAP;
+        vl.childControlWidth     = true;
+        vl.childControlHeight    = false;
         vl.childForceExpandWidth  = true;
         vl.childForceExpandHeight = false;
 
-        BuildLogo(c.transform);
-        Spacer(c.transform);
-        BuildButtons(c.transform);
-        BuildVersion(c.transform);
+        // PLAY
+        var playGO  = NewGO("PlayButton", wrapper.transform); LE(playGO, BTN_PLAY_H);
+        var playImg = playGO.AddComponent<Image>(); playImg.color = ORANGE; Round(playImg);
+
+        var shadowGO  = NewGO("Shadow", playGO.transform);
+        var shadowRT  = shadowGO.GetComponent<RectTransform>();
+        shadowRT.anchorMin = new Vector2(0f,0f); shadowRT.anchorMax = new Vector2(1f,0f);
+        shadowRT.pivot     = new Vector2(0.5f,1f);
+        shadowRT.offsetMin = new Vector2(4f,-8f); shadowRT.offsetMax = new Vector2(-4f,0f);
+        var shadowImg = shadowGO.AddComponent<Image>(); shadowImg.color = ORANGE_SHD;
+        shadowImg.raycastTarget = false; Round(shadowImg);
+
+        var playBtn = playGO.AddComponent<Button>(); playBtn.targetGraphic = playImg;
+        TintBtn(playBtn, new Color(1f,0.72f,0.17f,1f), new Color(0.86f,0.52f,0.02f,1f));
+
+        var playLbl = Label("Label", playGO.transform, "PLAY", 38f, FontStyles.Bold, Color.white);
+        StretchFill(playLbl); playLbl.GetComponent<TextMeshProUGUI>().raycastTarget = false;
+        AddBtnIcon(playGO.transform, "AnchorIcon", -80f, 42f);
+
+        // LEVELS
+        SecondaryBtn(wrapper.transform, "LevelsButton", "LEVELS", BTN_SEC_H, 38f);
+        AddBtnIcon(wrapper.transform.Find("LevelsButton"), "LevelsIcon", -110f, 52f);
+
+        // Settings + Credits row
+        var rowGO  = NewGO("BottomRow", wrapper.transform); LE(rowGO, BTN_ROW_H);
+        var rowHL  = rowGO.AddComponent<HorizontalLayoutGroup>();
+        rowHL.spacing = BTN_GAP; rowHL.childAlignment = TextAnchor.MiddleCenter;
+        rowHL.childControlWidth = true; rowHL.childControlHeight = true;
+        rowHL.childForceExpandWidth = true; rowHL.childForceExpandHeight = true;
+        SecondaryBtn(rowGO.transform, "SettingsButton", "Settings", BTN_ROW_H, 32f);
+        AddBtnIcon(rowGO.transform.Find("SettingsButton"), "SettingsIcon", -92f, 52f);
+        SecondaryBtn(rowGO.transform, "CreditsButton",  "Credits",  BTN_ROW_H, 32f);
+        AddBtnIcon(rowGO.transform.Find("CreditsButton"), "CreditsIcon", -88f, 52f);
+
+        // Version label
+        var verSpacer = NewGO("VersionSpacer", wrapper.transform);
+        verSpacer.AddComponent<LayoutElement>().preferredHeight = VERSION_PAD;
+        var verGO  = NewGO("Version", wrapper.transform); LE(verGO, VERSION_H);
+        var verTMP = verGO.AddComponent<TextMeshProUGUI>();
+        verTMP.text = $"v{Application.version}"; verTMP.fontSize = 11f;
+        verTMP.color = new Color(1f,1f,1f,0.3f); verTMP.alignment = TextAlignmentOptions.Center;
+        verTMP.characterSpacing = 2f;
     }
 
-    // ── Logo ──────────────────────────────────────────────────────────────────
+    // ── REMOVED: BuildLogo and BuildButtons replaced by BuildLogoAnchored/BuildButtonsAnchored ──
 
-    void BuildLogo(Transform parent)
+    void _BuildLogo_UNUSED(Transform parent)
     {
         var area = NewGO("LogoArea", parent); LE(area, LOGO_H);
         var vl = area.AddComponent<VerticalLayoutGroup>();
@@ -221,9 +338,9 @@ public class HomeScreenBuilder : MonoBehaviour
         }
     }
 
-    // ── Buttons ───────────────────────────────────────────────────────────────
+    // ── Buttons (old — replaced by BuildButtonsAnchored) ─────────────────────
 
-    void BuildButtons(Transform parent)
+    void _BuildButtons_UNUSED(Transform parent)
     {
         float totalH = BTN_PLAY_H + BTN_GAP + BTN_SEC_H + BTN_GAP + BTN_ROW_H;
         var area = NewGO("Buttons", parent); LE(area, totalH);
@@ -306,11 +423,22 @@ public class HomeScreenBuilder : MonoBehaviour
 
     void ApplySprites(Transform panel)
     {
-        SetIcon(panel, "Content/Buttons/PlayButton/AnchorIcon",           LoadIcon("anchor"));
-        SetIcon(panel, "Content/Buttons/LevelsButton/LevelsIcon",         LoadIcon("levels"));
-        SetIcon(panel, "Content/Buttons/BottomRow/SettingsButton/SettingsIcon", LoadIcon("settings"));
-        SetIcon(panel, "Content/Buttons/BottomRow/CreditsButton/CreditsIcon",   LoadIcon("credits"));
-        SetIcon(panel, "Content/LogoArea/BoatIcon",                       LoadIcon("boat"));
+        SetIcon(panel, "Content/Buttons/PlayButton/AnchorIcon",                    LoadIcon("anchor"));
+        SetIcon(panel, "Content/Buttons/LevelsButton/LevelsIcon",                  LoadIcon("levels"));
+        SetIcon(panel, "Content/Buttons/BottomRow/SettingsButton/SettingsIcon",    LoadIcon("settings"));
+        SetIcon(panel, "Content/Buttons/BottomRow/CreditsButton/CreditsIcon",      LoadIcon("credits"));
+        SetIcon(panel, "Content/LogoArea/BoatIcon",                                LoadIcon("boat"));
+
+        // Try to assign star sprites — supports "star", "star_filled", or "star_0".."star_4"
+        var starSprite = Resources.Load<Sprite>("star/star")
+                      ?? Resources.Load<Sprite>("star/star_filled")
+                      ?? Resources.Load<Sprite>("star/Star")
+                      ?? Resources.Load<Sprite>("star/Star_filled");
+        for (int i = 0; i < 5; i++)
+        {
+            var sp = Resources.Load<Sprite>($"star/star_{i}") ?? starSprite;
+            SetIcon(panel, $"Content/LogoArea/Stars/Star{i}", sp);
+        }
     }
 
     static void SetIcon(Transform panel, string path, Sprite sprite)
@@ -329,6 +457,8 @@ public class HomeScreenBuilder : MonoBehaviour
         var mm = FindObjectOfType<MainMenuManager>();
         if (mm == null) return;
         mm.homePanel = panel;
+        if (mm.settingsPanel == null)
+            mm.settingsPanel = transform.Find("SettingsPanel")?.gameObject;
 
         Button Find(string path) => panel.transform.Find(path)?.GetComponent<Button>();
         mm.playButton        = Find("Content/Buttons/PlayButton");

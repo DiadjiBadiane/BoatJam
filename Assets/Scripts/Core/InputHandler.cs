@@ -161,16 +161,39 @@ public class InputHandler : MonoBehaviour
 
         Ray ray = gameCamera.ScreenPointToRay(screenPos);
 
-        if (Physics.Raycast(ray, out RaycastHit hit, 100f))
+        // ── Pass 1: RaycastAll — pick the closest boat hit ────────────────────
+        // RaycastAll finds hits even when the ray enters through a collider edge,
+        // which fixes clicks that land near the tip or side of a boat.
+        BoatMovement best = null;
+        float bestDist = float.MaxValue;
+
+        RaycastHit[] hits = Physics.RaycastAll(ray, 100f);
+        foreach (var hit in hits)
         {
             BoatMovement bm = hit.collider.GetComponentInParent<BoatMovement>();
+            if (bm != null && hit.distance < bestDist)
+            {
+                bestDist = hit.distance;
+                best = bm;
+            }
+        }
+
+        if (best != null)
+        {
+            if (_selectedBoat != best) { Deselect(); Select(best); }
+            return;
+        }
+
+        // ── Pass 2: Sphere cast fallback ──────────────────────────────────────
+        // If the ray missed all colliders (click was just outside the edge),
+        // sweep a small sphere along the same ray to catch near-misses.
+        float sphereRadius = (GridManager.Instance != null ? GridManager.Instance.cellSize : 1f) * 0.35f;
+        if (Physics.SphereCast(ray, sphereRadius, out RaycastHit sphereHit, 100f))
+        {
+            BoatMovement bm = sphereHit.collider.GetComponentInParent<BoatMovement>();
             if (bm != null)
             {
-                if (_selectedBoat != bm)
-                {
-                    Deselect();
-                    Select(bm);
-                }
+                if (_selectedBoat != bm) { Deselect(); Select(bm); }
                 return;
             }
         }

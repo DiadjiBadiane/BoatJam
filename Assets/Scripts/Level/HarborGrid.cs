@@ -25,10 +25,25 @@ public class HarborGrid : MonoBehaviour
     void Start()
     {
         if (gridManager == null) gridManager = FindObjectOfType<GridManager>();
+        RebuildVisuals();
+    }
+
+    public void RebuildVisuals()
+    {
+        if (gridManager == null) gridManager = FindObjectOfType<GridManager>();
+        if (gridManager == null) return;
+
+        ClearVisuals();
         DrawWaterFloor();
         DrawGridLines();
         DrawDockBorder();
         DrawCornerBolts();
+    }
+
+    void ClearVisuals()
+    {
+        for (int i = transform.childCount - 1; i >= 0; i--)
+            Destroy(transform.GetChild(i).gameObject);
     }
 
     // Called by Unity when you hit Reset in the Inspector — clears stale fields
@@ -81,17 +96,37 @@ public class HarborGrid : MonoBehaviour
         Cube("Dock_Rim",    transform, new Vector3(tw*.5f-half, bh*.25f, th*.5f-half), new Vector3(tw+rim*2, bh*.5f, th+rim*2), COL_DOCK_RIM);
         Cube("Dock_Bottom", transform, new Vector3(tw*.5f-half, bh*.5f, -half),        new Vector3(tw+bt*2,  bh, bt),           COL_DOCK_WALL);
         Cube("Dock_Top",    transform, new Vector3(tw*.5f-half, bh*.5f, th-half),      new Vector3(tw+bt*2,  bh, bt),           COL_DOCK_WALL);
-        Cube("Dock_Left",   transform, new Vector3(-half,        bh*.5f, th*.5f-half), new Vector3(bt, bh, th),                 COL_DOCK_WALL);
 
         LevelData level = GameManager.Instance?.CurrentLevel;
-        if (level == null || !level.exitOnRight)
-        { Cube("Dock_Right", transform, new Vector3(tw-half, bh*.5f, th*.5f-half), new Vector3(bt,bh,th), COL_DOCK_WALL); return; }
 
-        float ez = level.exitRow*cellSize, gap = gapCellCount*cellSize;
-        float botH = ez-half;
-        if (botH > 0f) Cube("Dock_R_Bot", transform, new Vector3(tw-half,bh*.5f,botH*.5f),              new Vector3(bt,bh,botH), COL_DOCK_WALL);
-        float ts = ez+gap+half, topH = th-ts;
-        if (topH > 0f) Cube("Dock_R_Top", transform, new Vector3(tw-half,bh*.5f,ts+topH*.5f-half),      new Vector3(bt,bh,topH), COL_DOCK_WALL);
+        if (level == null)
+        {
+            // No level data yet — draw solid walls on all four sides
+            Cube("Dock_Left",  transform, new Vector3(-half,    bh*.5f, th*.5f-half), new Vector3(bt, bh, th), COL_DOCK_WALL);
+            Cube("Dock_Right", transform, new Vector3(tw-half,  bh*.5f, th*.5f-half), new Vector3(bt, bh, th), COL_DOCK_WALL);
+            return;
+        }
+
+        float ez   = level.exitRow * cellSize;
+        float gap  = gapCellCount  * cellSize;
+        float botH = ez - half;
+        float ts   = ez + gap + half;
+        float topH = th - ts;
+
+        if (level.exitOnRight)
+        {
+            // Left wall solid, gap cut into right wall at exitRow
+            Cube("Dock_Left",  transform, new Vector3(-half,    bh*.5f, th*.5f-half), new Vector3(bt, bh, th), COL_DOCK_WALL);
+            if (botH > 0f) Cube("Dock_R_Bot", transform, new Vector3(tw-half, bh*.5f, botH*.5f),             new Vector3(bt, bh, botH), COL_DOCK_WALL);
+            if (topH > 0f) Cube("Dock_R_Top", transform, new Vector3(tw-half, bh*.5f, ts+topH*.5f-half),     new Vector3(bt, bh, topH), COL_DOCK_WALL);
+        }
+        else
+        {
+            // Right wall solid, gap cut into left wall at exitRow
+            Cube("Dock_Right", transform, new Vector3(tw-half,  bh*.5f, th*.5f-half), new Vector3(bt, bh, th), COL_DOCK_WALL);
+            if (botH > 0f) Cube("Dock_L_Bot", transform, new Vector3(-half, bh*.5f, botH*.5f),               new Vector3(bt, bh, botH), COL_DOCK_WALL);
+            if (topH > 0f) Cube("Dock_L_Top", transform, new Vector3(-half, bh*.5f, ts+topH*.5f-half),       new Vector3(bt, bh, topH), COL_DOCK_WALL);
+        }
     }
 
     void DrawCornerBolts()

@@ -9,8 +9,14 @@ public class BoatMovement : MonoBehaviour
     [Header("Boat Config")]
     public string boatId;
     public int    size         = 2;
+    public int    width        = 1;
     public bool   isHorizontal = true;
     public bool   isHero       = false;
+
+    public int LengthCells => Mathf.Max(1, size);
+    public int WidthCells  => Mathf.Max(1, width);
+    public int SpanX       => isHorizontal ? LengthCells : WidthCells;
+    public int SpanY       => isHorizontal ? WidthCells  : LengthCells;
 
     [Header("Movement")]
     public float moveSpeed = 8f;
@@ -28,6 +34,12 @@ public class BoatMovement : MonoBehaviour
         return fitter != null ? fitter.WorldYOffset : 0f;
     }
 
+    Vector3 GetWorldCenterOffsetXZ()
+    {
+        var fitter = GetComponent<BoatMeshFitter>();
+        return fitter != null ? fitter.WorldCenterOffsetXZ : Vector3.zero;
+    }
+
     // ── Initialisation ────────────────────────────────────────────────────────
 
     public void InitializePosition(Vector2Int gridPos)
@@ -42,23 +54,26 @@ public class BoatMovement : MonoBehaviour
 
         GridPosition = gridPos;
 
-        float halfCell = GridManager.Instance.cellSize * 0.5f;
+        float cell = GridManager.Instance.cellSize;
+        float axisOffset  = ((LengthCells - 1) * 0.5f) * cell;
+        float crossOffset = ((WidthCells  - 1) * 0.5f) * cell;
         _gridOffset = isHorizontal
-            ? new Vector3(halfCell, 0f, 0f)
-            : new Vector3(0f, 0f, halfCell);
+            ? new Vector3(axisOffset, 0f, crossOffset)
+            : new Vector3(crossOffset, 0f, axisOffset);
 
-        transform.position = GridManager.Instance.GridToWorld(gridPos) + _gridOffset + Vector3.up * GetWorldYOffset();
+        transform.position = GridManager.Instance.GridToWorld(gridPos) + _gridOffset + Vector3.up * GetWorldYOffset() - GetWorldCenterOffsetXZ();
     }
 
     // ── Cell queries ──────────────────────────────────────────────────────────
 
     public List<Vector2Int> GetOccupiedCells()
     {
-        var cells = new List<Vector2Int>(size);
-        for (int i = 0; i < size; i++)
+        var cells = new List<Vector2Int>(LengthCells * WidthCells);
+        for (int l = 0; l < LengthCells; l++)
+        for (int w = 0; w < WidthCells; w++)
             cells.Add(new Vector2Int(
-                GridPosition.x + (isHorizontal ? i : 0),
-                GridPosition.y + (isHorizontal ? 0 : i)));
+                GridPosition.x + (isHorizontal ? l : w),
+                GridPosition.y + (isHorizontal ? w : l)));
         return cells;
     }
 
@@ -87,7 +102,7 @@ public class BoatMovement : MonoBehaviour
 
         OnAnyBoatMoved?.Invoke(this);
 
-        _targetWorldPos = GridManager.Instance.GridToWorld(GridPosition) + _gridOffset + Vector3.up * GetWorldYOffset();
+        _targetWorldPos = GridManager.Instance.GridToWorld(GridPosition) + _gridOffset + Vector3.up * GetWorldYOffset() - GetWorldCenterOffsetXZ();
         IsMoving = true;
     }
 
@@ -107,7 +122,7 @@ public class BoatMovement : MonoBehaviour
 
         // Do NOT fire OnAnyBoatMoved — this is a silent, automatic step.
 
-        _targetWorldPos = GridManager.Instance.GridToWorld(GridPosition) + _gridOffset + Vector3.up * GetWorldYOffset();
+        _targetWorldPos = GridManager.Instance.GridToWorld(GridPosition) + _gridOffset + Vector3.up * GetWorldYOffset() - GetWorldCenterOffsetXZ();
         IsMoving = true;
     }
 
@@ -146,16 +161,23 @@ public class BoatMovement : MonoBehaviour
 
         if (GridManager.Instance.IsValidPlacement(this, newPos)) return true;
 
-        for (int i = 0; i < size; i++)
+        foreach (var cell in GetOccupiedCellsAt(newPos))
         {
-            Vector2Int cell = new Vector2Int(
-                newPos.x + (isHorizontal ? i : 0),
-                newPos.y + (isHorizontal ? 0 : i));
-
             if ( level.exitOnRight && cell.x >= GridManager.Instance.width && cell.y == level.exitRow) return true;
             if (!level.exitOnRight && cell.x < 0                           && cell.y == level.exitRow) return true;
         }
         return false;
+    }
+
+    List<Vector2Int> GetOccupiedCellsAt(Vector2Int gridPos)
+    {
+        var cells = new List<Vector2Int>(LengthCells * WidthCells);
+        for (int l = 0; l < LengthCells; l++)
+        for (int w = 0; w < WidthCells; w++)
+            cells.Add(new Vector2Int(
+                gridPos.x + (isHorizontal ? l : w),
+                gridPos.y + (isHorizontal ? w : l)));
+        return cells;
     }
 
     // ── Update / animation ────────────────────────────────────────────────────

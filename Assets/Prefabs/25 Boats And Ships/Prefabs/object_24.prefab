@@ -105,6 +105,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BoatMeshFitter
   cellCount: 2
+  cellWidth: 1
   scaleFactor: 0.88
   rotationOffset: {x: 0, y: 0, z: 0}
   colliderHeight: 0.4
@@ -122,7 +123,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BoatMovement
   boatId: 
-  size: 2
+  size: 4
+  width: 1
   isHorizontal: 1
   isHero: 0
   moveSpeed: 8
