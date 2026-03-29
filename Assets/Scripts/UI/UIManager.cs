@@ -52,12 +52,12 @@ public class UIManager : MonoBehaviour
     {
         PlatformBootstrap.ApplyDefaults();
 
-        gameManager = GameManager.Instance ?? FindObjectOfType<GameManager>();
+        gameManager = GameManager.Instance ?? FindAnyObjectByType<GameManager>();
         FixCameraBackground();
 
         if (mainCanvas == null)
         {
-            var all = FindObjectsOfType<Canvas>();
+            var all = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
             foreach (var c in all)
                 if (c.gameObject.scene.name == "GameScene") { mainCanvas = c; break; }
             if (mainCanvas == null && all.Length > 0) mainCanvas = all[0];
@@ -88,7 +88,7 @@ public class UIManager : MonoBehaviour
     void FixCameraBackground()
     {
         Color oceanMid = Hex("0369a1");
-        foreach (var cam in FindObjectsOfType<Camera>())
+        foreach (var cam in FindObjectsByType<Camera>(FindObjectsSortMode.None))
         {
             cam.clearFlags      = CameraClearFlags.SolidColor;
             cam.backgroundColor = oceanMid;
@@ -101,7 +101,7 @@ public class UIManager : MonoBehaviour
 
     public void CapturePreMoveSnapshot()
     {
-        var boats    = FindObjectsOfType<BoatMovement>();
+        var boats    = FindObjectsByType<BoatMovement>(FindObjectsSortMode.None);
         var snapshot = new Dictionary<BoatMovement, BoatState>(boats.Length);
         foreach (var boat in boats)
             snapshot[boat] = new BoatState
@@ -136,7 +136,7 @@ public class UIManager : MonoBehaviour
             Debug.LogWarning("UIManager.ShowWinPanel: winPanel was null — rebuilding.");
             if (mainCanvas == null)
             {
-                var all = FindObjectsOfType<Canvas>();
+                var all = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
                 if (all.Length > 0) mainCanvas = all[0];
             }
             winPanel = BuildWinPanel();
@@ -197,7 +197,7 @@ public class UIManager : MonoBehaviour
     public void RestartLevel()
     {
         Time.timeScale = 1f;
-        var gm = GameManager.Instance ?? FindObjectOfType<GameManager>();
+        var gm = GameManager.Instance ?? FindAnyObjectByType<GameManager>();
         gm?.ReloadCurrentLevel();
     }
 
@@ -205,7 +205,7 @@ public class UIManager : MonoBehaviour
     {
         Debug.Log("UIManager.NextLevel() called");
         Time.timeScale = 1f;
-        var gm = GameManager.Instance ?? FindObjectOfType<GameManager>();
+        var gm = GameManager.Instance ?? FindAnyObjectByType<GameManager>();
         if (gm != null)
             gm.LoadNextLevel();
         else
@@ -316,7 +316,7 @@ public class UIManager : MonoBehaviour
 
     void EnsureEventSystem()
     {
-        var all = FindObjectsOfType<EventSystem>();
+        var all = FindObjectsByType<EventSystem>(FindObjectsSortMode.None);
         if (all.Length == 0)
             new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
         else

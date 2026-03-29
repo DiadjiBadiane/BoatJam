@@ -2124,6 +2124,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HomeScreenBuilder
   logoTexture: {fileID: 2800000, guid: 0f899364f79af4be8b9be178a82434e9, type: 3}
   menuWaterTexture: {fileID: 2800000, guid: bdd1cbdd2c923164980eae84b3bcf7a2, type: 3}
+  menuWaterMaterial: {fileID: 2100000, guid: 867ec64eba6038b4e95709fa94008027, type: 2}
 --- !u!1 &895896769
 GameObject:
   m_ObjectHideFlags: 0

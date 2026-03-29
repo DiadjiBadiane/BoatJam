@@ -158,7 +158,7 @@ public class MainMenuManager : MonoBehaviour
 
     void EnsureEventSystem()
     {
-        var all = FindObjectsOfType<EventSystem>();
+        var all = FindObjectsByType<EventSystem>(FindObjectsSortMode.None);
         if (all.Length == 0)
             new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
         else
@@ -180,7 +180,7 @@ public class MainMenuManager : MonoBehaviour
             if (go != null) Destroy(go);
         }
 
-        var leakedUIManager = FindObjectOfType<UIManager>();
+        var leakedUIManager = FindAnyObjectByType<UIManager>();
         if (leakedUIManager != null) Destroy(leakedUIManager);
     }
 

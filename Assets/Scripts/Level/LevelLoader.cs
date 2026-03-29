@@ -29,7 +29,7 @@ public class LevelLoader : MonoBehaviour
     void Awake()
     {
         if (harborGrid == null)
-            harborGrid = FindObjectOfType<HarborGrid>();
+            harborGrid = FindAnyObjectByType<HarborGrid>();
     }
 
     public void LoadLevel(LevelData levelData)

@@ -16,6 +16,7 @@ public class HomeScreenBuilder : MonoBehaviour
     [Header("Artwork")]
     [SerializeField] Texture2D logoTexture;
     [SerializeField] Texture2D menuWaterTexture;
+    [SerializeField] Material menuWaterMaterial;
 
     // ── Sprite loading ────────────────────────────────────────────────────────
     // Put your PNGs in Assets/Resources/Icons/ with these exact names:
@@ -89,6 +90,52 @@ public class HomeScreenBuilder : MonoBehaviour
     {
         var bg = NewGO("Background", root);
         Stretch(bg);
+
+#if UNITY_EDITOR
+        // Auto-find the water material in the editor so the 3D shader activates
+        // without needing a manual inspector assignment.
+        if (menuWaterMaterial == null)
+            menuWaterMaterial = FindWaterMaterialInEditor();
+#endif
+
+        var shaderWater = GetComponent<MenuWaterBackground3D>();
+        if (menuWaterMaterial != null)
+        {
+            if (shaderWater == null)
+                shaderWater = gameObject.AddComponent<MenuWaterBackground3D>();
+
+            var targetCamera = Camera.main;
+            if (targetCamera == null)
+                targetCamera = FindAnyObjectByType<Camera>();
+
+            if (shaderWater.Configure(menuWaterMaterial, targetCamera))
+            {
+                // Subtle colour tint that unifies the 3D water with the UI palette
+                var tint = NewGO("WaterTint", bg.transform);
+                Stretch(tint);
+                var tintImg = tint.AddComponent<Image>();
+                tintImg.color = new Color(0.02f, 0.15f, 0.22f, 0.06f);
+                tintImg.raycastTarget = false;
+
+                // Deep-water gradient — darker at the bottom, open at the top
+                var depth = NewGO("WaterDepth", bg.transform);
+                var depthRT = depth.GetComponent<RectTransform>();
+                depthRT.anchorMin = new Vector2(0f, 0f);
+                depthRT.anchorMax = new Vector2(1f, 0.45f);
+                depthRT.offsetMin = depthRT.offsetMax = Vector2.zero;
+                var depthImg = depth.AddComponent<Image>();
+                depthImg.color = new Color(0f, 0.05f, 0.20f, 0.32f);
+                depthImg.raycastTarget = false;
+
+                // Animated shimmer lines — light caustics skimming the surface
+                BuildWaterShimmerLines(bg.transform);
+                return;
+            }
+        }
+        else if (shaderWater != null)
+        {
+            shaderWater.Clear();
+        }
 
         if (menuWaterTexture != null)
         {
@@ -397,11 +444,69 @@ public class HomeScreenBuilder : MonoBehaviour
         if (img != null) { img.sprite = sprite; img.preserveAspect = true; }
     }
 
+    // ── Editor-only material auto-finder ─────────────────────────────────────
+
+#if UNITY_EDITOR
+    static Material FindWaterMaterialInEditor()
+    {
+        // Use the UNLIT variant — WaterLit requires scene lights to show surface patterns;
+        // a menu scene typically has none, so everything renders as flat base colour.
+        // WaterUnlit bakes colour variation into the output directly (foam, normals, caves).
+        // Priority 1: StylizedOceanWater — WaterUnlit, no reflections, works without lights
+        var guids = UnityEditor.AssetDatabase.FindAssets("M_StylizedOceanWater t:Material");
+        foreach (var g in guids)
+        {
+            var mat = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(
+                UnityEditor.AssetDatabase.GUIDToAssetPath(g));
+            if (mat != null) return mat;
+        }
+        // Priority 2: StylizedColdWater — also WaterUnlit
+        guids = UnityEditor.AssetDatabase.FindAssets("M_StylizedColdWater t:Material");
+        foreach (var g in guids)
+        {
+            var mat = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(
+                UnityEditor.AssetDatabase.GUIDToAssetPath(g));
+            if (mat != null) return mat;
+        }
+        return null;
+    }
+#endif
+
+    // ── Animated water atmosphere ─────────────────────────────────────────────
+
+    void BuildWaterShimmerLines(Transform parent)
+    {
+        // Five horizontal bands that pulse in/out like light caustics on water
+        float[] yPos  = { 0.28f, 0.42f, 0.53f, 0.63f, 0.74f };
+        float[] delay = { 0.0f,  1.3f,  0.6f,  2.2f,  0.9f  };
+        float[] dur   = { 4.4f,  3.6f,  5.2f,  3.9f,  4.7f  };
+        float[] alpha = { 0.12f, 0.08f, 0.10f, 0.06f, 0.09f };
+
+        for (int i = 0; i < yPos.Length; i++)
+        {
+            var go = NewGO($"Shimmer{i}", parent);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(-0.15f, yPos[i]);
+            rt.anchorMax = new Vector2( 1.15f, yPos[i] + 0.020f);
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
+
+            var img = go.AddComponent<Image>();
+            img.color = new Color(1f, 1f, 1f, 0f);
+            img.raycastTarget = false;
+
+            var s = go.AddComponent<ShimmerLine>();
+            s.baseAnchorY = yPos[i];
+            s.duration    = dur[i];
+            s.delay       = delay[i];
+            s.peakAlpha   = alpha[i];
+        }
+    }
+
     // ── Wire MainMenuManager ──────────────────────────────────────────────────
 
     void WireMainMenuManager(GameObject panel)
     {
-        var mm = FindObjectOfType<MainMenuManager>();
+        var mm = FindAnyObjectByType<MainMenuManager>();
         if (mm == null) return;
         mm.homePanel = panel;
 
@@ -704,6 +809,44 @@ public class LogoBounce : MonoBehaviour
         float scaleX = 1f - stretch * stretchAmount;
         float scaleY = 1f + stretch * stretchAmount;
         rt.localScale = new Vector3(baseScale.x * scaleX, baseScale.y * scaleY, baseScale.z);
+    }
+}
+
+/// Fades a horizontal band in and out to simulate light caustics on the water surface.
+public class ShimmerLine : MonoBehaviour
+{
+    public float baseAnchorY = 0.5f;
+    public float duration    = 4f;
+    public float delay       = 0f;
+    public float peakAlpha   = 0.10f;
+
+    Image         img;
+    RectTransform rt;
+    float         t;
+
+    void Awake()
+    {
+        img = GetComponent<Image>();
+        rt  = GetComponent<RectTransform>();
+        t   = delay > 0f ? -delay : 0f;
+    }
+
+    void Update()
+    {
+        t += Time.deltaTime;
+        if (t < 0f) return;
+
+        // Smooth sine fade so the band pulses rather than strobes
+        float phase = Mathf.Sin((t / duration) * Mathf.PI * 2f);
+        float a     = (phase * 0.5f + 0.5f) * peakAlpha;
+        var c = img.color;
+        img.color = new Color(c.r, c.g, c.b, a);
+
+        // Gentle vertical drift that follows the wave rhythm
+        float drift = Mathf.Sin(t * 0.68f + baseAnchorY * 3.1f) * 0.014f;
+        float newY  = baseAnchorY + drift;
+        rt.anchorMin = new Vector2(rt.anchorMin.x, newY);
+        rt.anchorMax = new Vector2(rt.anchorMax.x, newY + 0.020f);
     }
 }
 

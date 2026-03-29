@@ -28,7 +28,7 @@ public class HarborGrid : MonoBehaviour
 
     void Start()
     {
-        if (gridManager == null) gridManager = FindObjectOfType<GridManager>();
+        if (gridManager == null) gridManager = FindAnyObjectByType<GridManager>();
         DrawWaterFloor();
         DrawGridLines();
         DrawDockBorder();
@@ -38,7 +38,7 @@ public class HarborGrid : MonoBehaviour
     // Called by Unity when you hit Reset in the Inspector — clears stale fields
     void Reset()
     {
-        gridManager = FindObjectOfType<GridManager>();
+        gridManager = FindAnyObjectByType<GridManager>();
     }
 
     void DrawWaterFloor()

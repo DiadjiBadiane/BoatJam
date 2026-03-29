@@ -42,7 +42,7 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        uiManager = UIManager.Instance ?? FindObjectOfType<UIManager>();
+        uiManager = UIManager.Instance ?? FindAnyObjectByType<UIManager>();
 
         var loaded = Resources.LoadAll<LevelData>("Levels");
         string info = $"Resources.LoadAll found {loaded.Length} level(s): ";
@@ -104,14 +104,14 @@ public class GameManager : MonoBehaviour
 
     BoatMovement FindHero()
     {
-        foreach (var b in FindObjectsOfType<BoatMovement>())
+        foreach (var b in FindObjectsByType<BoatMovement>(FindObjectsSortMode.None))
             if (b != null && b.isHero) return b;
         return null;
     }
 
     bool AnyBoatMoving()
     {
-        foreach (var b in FindObjectsOfType<BoatMovement>())
+        foreach (var b in FindObjectsByType<BoatMovement>(FindObjectsSortMode.None))
             if (b != null && b.IsMoving) return true;
         return false;
     }
@@ -125,7 +125,7 @@ public class GameManager : MonoBehaviour
         _framesSinceLoad++;
         if (_framesSinceLoad < 3) return;
 
-        var boats = FindObjectsOfType<BoatMovement>();
+        var boats = FindObjectsByType<BoatMovement>(FindObjectsSortMode.None);
         foreach (var b in boats)
         {
             if (b == null || !b.isHero) continue;
@@ -172,7 +172,7 @@ public class GameManager : MonoBehaviour
         levelLoader.LoadLevel(CurrentLevel);
 
         if (uiManager == null)
-            uiManager = UIManager.Instance ?? FindObjectOfType<UIManager>();
+            uiManager = UIManager.Instance ?? FindAnyObjectByType<UIManager>();
         uiManager?.ShowGame(index + 1);
 
         StartCoroutine(FitCameraWhenReady(CurrentLevel.gridWidth, CurrentLevel.gridHeight));
@@ -242,7 +242,7 @@ public class GameManager : MonoBehaviour
         LevelProgress.UnlockNextLevel(CurrentLevelIndex);
 
         if (uiManager == null)
-            uiManager = UIManager.Instance ?? FindObjectOfType<UIManager>();
+            uiManager = UIManager.Instance ?? FindAnyObjectByType<UIManager>();
 
         if (uiManager != null)
             uiManager.ShowWinPanel(stars);
