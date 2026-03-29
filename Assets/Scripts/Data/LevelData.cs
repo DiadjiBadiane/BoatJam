@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "Level_000", menuName = "Boat Jam/Level Data")]
+[CreateAssetMenu(fileName = "Level_000", menuName = "Leave my Boat/Level Data")]
 public class LevelData : ScriptableObject
 {
     [Header("Grid")]

@@ -1,5 +1,5 @@
 // Assets/Scripts/UI/HomeScreenBuilder.cs
-// Builds the entire Boat Jam home screen in code, pixel-perfect to the HTML mockup.
+// Builds the entire Leave my Boat home screen in code, pixel-perfect to the HTML mockup.
 //
 // SETUP (one-time):
 //   1. Attach this script to your Canvas GameObject.
@@ -190,10 +190,10 @@ public class HomeScreenBuilder : MonoBehaviour
         boatImg.preserveAspect = true;
         var bob = boatGO.AddComponent<Bobber>(); bob.amplitude = 8f; bob.tiltDeg = 3f; bob.duration = 3f;
 
-        // BOAT JAM title
+        // LEAVE MY BOAT title
         var titleGO = NewGO("Title", area.transform); LE(titleGO, 64f);
         var titleTMP = titleGO.AddComponent<TextMeshProUGUI>();
-        titleTMP.text = "BOAT JAM"; titleTMP.fontSize = 82f;
+        titleTMP.text = "LEAVE MY BOAT"; titleTMP.fontSize = 82f;
         titleTMP.fontStyle = FontStyles.Bold; titleTMP.color = Color.white;
         titleTMP.alignment = TextAlignmentOptions.Center;
         titleTMP.outlineWidth = 0.25f; titleTMP.outlineColor = new Color32(3, 105, 161, 255);
