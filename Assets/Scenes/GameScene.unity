@@ -617,6 +617,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HarborGrid
   gridManager: {fileID: 1619849092}
+  stylizedWaterTexture: {fileID: 2800000, guid: bdd1cbdd2c923164980eae84b3bcf7a2, type: 3}
   cellSize: 1
   borderThickness: 0.18
   borderHeight: 0.28

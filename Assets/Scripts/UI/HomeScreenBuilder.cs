@@ -13,6 +13,10 @@ using TMPro;
 
 public class HomeScreenBuilder : MonoBehaviour
 {
+    [Header("Artwork")]
+    [SerializeField] Texture2D logoTexture;
+    [SerializeField] Texture2D menuWaterTexture;
+
     // ── Sprite loading ────────────────────────────────────────────────────────
     // Put your PNGs in Assets/Resources/Icons/ with these exact names:
     //   anchor.png, levels.png, settings.png, credits.png, boat.png
@@ -21,17 +25,22 @@ public class HomeScreenBuilder : MonoBehaviour
     static Sprite LoadIcon(string name)
         => Resources.Load<Sprite>($"Icons/{name}");
 
+    static Texture2D LoadTexture(string name)
+        => Resources.Load<Texture2D>($"Icons/{name}");
+
     // ── Layout constants ──────────────────────────────────────────────────────
-    const float SIDE_PAD    = 32f;
-    const float TOP_PAD     = 60f;
-    const float BOTTOM_PAD  = 48f;
-    const float LOGO_H      = 230f;
+    const float SIDE_PAD    = 80f;
+    const float TOP_PAD     = 0f;
+    const float BOTTOM_PAD  = 28f;
+    const float STACK_GAP   = 18f;
+    const float LOGO_H      = 390f;
+    const float LOGO_IMG_H  = 330f;
     const float BTN_PLAY_H  = 68f;
     const float BTN_SEC_H   = 60f;
     const float BTN_ROW_H   = 54f;
     const float BTN_GAP     = 14f;
     const float VERSION_H   = 20f;
-    const float VERSION_PAD = 10f;
+    const float STACK_Y     = 34f;
 
     // ── Colors ────────────────────────────────────────────────────────────────
     static Color SKY_TOP    = Hex("0ea5e9");
@@ -44,8 +53,10 @@ public class HomeScreenBuilder : MonoBehaviour
     static Color GLASS_BRD  = new Color(1f, 1f, 1f, 0.25f);
     static Color GLASS_FILL = new Color(1f, 1f, 1f, 0.10f);
     static Color CLOUD_CLR  = new Color(1f, 1f, 1f, 0.18f);
-    static Color GLINT_CLR  = new Color(1f, 0.863f, 0.314f, 0.6f);
-    static Color STAR_CLR   = new Color(1f, 0.82f, 0.10f, 1f);
+    static Color WATER_BASE = Hex("42afd8");
+    static Color WATER_PATTERN_A = new Color(1f, 1f, 1f, 0.18f);
+    static Color WATER_PATTERN_B = new Color(0.70f, 0.96f, 1f, 0.08f);
+    static Color WATER_SHADE  = new Color(0.02f, 0.20f, 0.31f, 0.05f);
 
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -56,11 +67,17 @@ public class HomeScreenBuilder : MonoBehaviour
     {
         var old = transform.Find("HomePanel");
         if (old != null) DestroyImmediate(old.gameObject);
+        var oldBackdrop = transform.Find("MenuBackdrop");
+        if (oldBackdrop != null) DestroyImmediate(oldBackdrop.gameObject);
+
+        var backdrop = NewGO("MenuBackdrop", transform);
+        Stretch(backdrop);
+        backdrop.transform.SetAsFirstSibling();
+        BuildBackground(backdrop.transform);
 
         var panel = NewGO("HomePanel", transform);
         Stretch(panel);
 
-        BuildBackground(panel.transform);
         BuildContent(panel.transform);
         ApplySprites(panel.transform);
         WireMainMenuManager(panel);
@@ -73,34 +90,51 @@ public class HomeScreenBuilder : MonoBehaviour
         var bg = NewGO("Background", root);
         Stretch(bg);
 
+        if (menuWaterTexture != null)
+        {
+            var baseFill = NewGO("WaterBase", bg.transform);
+            Stretch(baseFill);
+            var baseImg = baseFill.AddComponent<Image>();
+            baseImg.color = WATER_BASE;
+            baseImg.raycastTarget = false;
+
+            BuildAnimatedWaterLayer(bg.transform, "WaterPatternA", menuWaterTexture, WATER_PATTERN_A, 220f, new Vector2(0.020f, -0.006f));
+            BuildAnimatedWaterLayer(bg.transform, "WaterPatternB", menuWaterTexture, WATER_PATTERN_B, 320f, new Vector2(-0.012f, 0.004f));
+
+            var shade = NewGO("WaterShade", bg.transform);
+            Stretch(shade);
+            var shadeImg = shade.AddComponent<Image>();
+            shadeImg.color = WATER_SHADE;
+            shadeImg.raycastTarget = false;
+
+            return;
+        }
+
+        BuildLegacyBackground(bg.transform);
+    }
+
+    void BuildLegacyBackground(Transform parent)
+    {
         // Sky-to-sea gradient via stacked layers
-        Layer("Sky_Top", bg.transform, 0.55f, 1.0f,  SKY_TOP);
-        Layer("Sky_Mid", bg.transform, 0.30f, 0.65f, SKY_MID);
-        Layer("Sky_Low", bg.transform, 0.10f, 0.45f, SKY_LOW);
-        Layer("Sea_Mid", bg.transform, 0.00f, 0.25f, SEA_MID);
-        Layer("Sea_Bot", bg.transform, 0.00f, 0.12f, SEA_BOT);
+        Layer("Sky_Top", parent, 0.55f, 1.0f,  SKY_TOP);
+        Layer("Sky_Mid", parent, 0.30f, 0.65f, SKY_MID);
+        Layer("Sky_Low", parent, 0.10f, 0.45f, SKY_LOW);
+        Layer("Sea_Mid", parent, 0.00f, 0.25f, SEA_MID);
+        Layer("Sea_Bot", parent, 0.00f, 0.12f, SEA_BOT);
 
         // Clouds
-        MakeCloud(bg.transform, "Cloud1", 140f, 40f, -200f, 0.88f, 22f,  0f);
-        MakeCloud(bg.transform, "Cloud2",  90f, 28f, -150f, 0.82f, 30f, -8f);
-        MakeCloud(bg.transform, "Cloud3", 110f, 35f,  100f, 0.90f, 26f,-14f);
+        MakeCloud(parent, "Cloud1", 140f, 40f, -200f, 0.88f, 22f,  0f);
+        MakeCloud(parent, "Cloud2",  90f, 28f, -150f, 0.82f, 30f, -8f);
+        MakeCloud(parent, "Cloud3", 110f, 35f,  100f, 0.90f, 26f,-14f);
 
         // Waves
-        MakeWave(bg.transform, "Wave1", 0.47f,  80f, new Color(0.22f,0.74f,0.98f,0.25f),  4f,   0f);
-        MakeWave(bg.transform, "Wave2", 0.43f, 100f, new Color(0.055f,0.647f,0.914f,0.25f),5f,  -1f);
-        MakeWave(bg.transform, "Wave3", 0.41f,  60f, new Color(0.49f,0.83f,0.99f,0.25f),  3.5f, -2f);
-
-        // Glint
-        var g  = NewGO("Glint", bg.transform);
-        var gr = g.GetComponent<RectTransform>();
-        gr.anchorMin = new Vector2(0.5f, 0.42f); gr.anchorMax = new Vector2(0.5f, 0.42f);
-        gr.pivot     = new Vector2(0.5f, 0.5f);  gr.sizeDelta = new Vector2(200f, 6f);
-        var gi = g.AddComponent<Image>(); gi.color = GLINT_CLR; Round(gi);
-        g.AddComponent<GlintPulse>();
+        MakeWave(parent, "Wave1", 0.47f,  80f, new Color(0.22f,0.74f,0.98f,0.25f),  4f,   0f);
+        MakeWave(parent, "Wave2", 0.43f, 100f, new Color(0.055f,0.647f,0.914f,0.25f),5f,  -1f);
+        MakeWave(parent, "Wave3", 0.41f,  60f, new Color(0.49f,0.83f,0.99f,0.25f),  3.5f, -2f);
 
         // Deco boats
-        MakeDecoBoat(bg.transform, "DecoBoat1", "⛵", 28f, new Vector2(0.08f, 0.57f), 4f,  0f);
-        MakeDecoBoat(bg.transform, "DecoBoat2", "🚤", 20f, new Vector2(0.88f, 0.52f), 5f, -2f);
+        MakeDecoBoat(parent, "DecoBoat1", "⛵", 28f, new Vector2(0.08f, 0.57f), 4f,  0f);
+        MakeDecoBoat(parent, "DecoBoat2", "🚤", 20f, new Vector2(0.88f, 0.52f), 5f, -2f);
     }
 
     void Layer(string name, Transform parent, float minY, float maxY, Color color)
@@ -110,6 +144,21 @@ public class HomeScreenBuilder : MonoBehaviour
         rt.anchorMin = new Vector2(0f, minY); rt.anchorMax = new Vector2(1f, maxY);
         rt.offsetMin = rt.offsetMax = Vector2.zero;
         go.AddComponent<Image>().color = color;
+    }
+
+    void BuildAnimatedWaterLayer(Transform parent, string name, Texture texture, Color color, float tileSize, Vector2 scrollSpeed)
+    {
+        var go = NewGO(name, parent);
+        Stretch(go);
+
+        var raw = go.AddComponent<RawImage>();
+        raw.texture = texture;
+        raw.color = color;
+        raw.raycastTarget = false;
+
+        var tiled = go.AddComponent<AnimatedTiledRawImage>();
+        tiled.tileSize = tileSize;
+        tiled.scrollSpeed = scrollSpeed;
     }
 
     void MakeCloud(Transform parent, string name, float w, float h,
@@ -156,20 +205,25 @@ public class HomeScreenBuilder : MonoBehaviour
     {
         var c = NewGO("Content", root);
         Stretch(c);
-        var vl = c.AddComponent<VerticalLayoutGroup>();
-        vl.childAlignment       = TextAnchor.UpperCenter;
-        vl.spacing              = 0f;
-        vl.padding              = new RectOffset(
-            Mathf.RoundToInt(SIDE_PAD), Mathf.RoundToInt(SIDE_PAD),
-            Mathf.RoundToInt(TOP_PAD),  Mathf.RoundToInt(BOTTOM_PAD));
-        vl.childControlWidth      = true;
-        vl.childControlHeight     = false;
-        vl.childForceExpandWidth  = true;
-        vl.childForceExpandHeight = false;
+        var stack = NewGO("CenterStack", c.transform);
+        var stackRT = stack.GetComponent<RectTransform>();
+        float stackHeight = LOGO_H + STACK_GAP + BTN_PLAY_H + BTN_GAP + BTN_SEC_H + BTN_GAP + BTN_ROW_H;
+        stackRT.anchorMin = new Vector2(0f, 0.5f);
+        stackRT.anchorMax = new Vector2(1f, 0.5f);
+        stackRT.pivot = new Vector2(0.5f, 0.5f);
+        stackRT.sizeDelta = new Vector2(-SIDE_PAD * 2f, stackHeight);
+        stackRT.anchoredPosition = new Vector2(0f, STACK_Y);
 
-        BuildLogo(c.transform);
-        Spacer(c.transform);
-        BuildButtons(c.transform);
+        var stackLayout = stack.AddComponent<VerticalLayoutGroup>();
+        stackLayout.childAlignment       = TextAnchor.UpperCenter;
+        stackLayout.spacing              = STACK_GAP;
+        stackLayout.childControlWidth    = true;
+        stackLayout.childControlHeight   = true;
+        stackLayout.childForceExpandWidth  = true;
+        stackLayout.childForceExpandHeight = false;
+
+        BuildLogo(stack.transform);
+        BuildButtons(stack.transform);
         BuildVersion(c.transform);
     }
 
@@ -177,48 +231,66 @@ public class HomeScreenBuilder : MonoBehaviour
 
     void BuildLogo(Transform parent)
     {
+        if (logoTexture == null)
+            logoTexture = LoadTexture("leave_my_boat_logo");
+
         var area = NewGO("LogoArea", parent); LE(area, LOGO_H);
-        var vl = area.AddComponent<VerticalLayoutGroup>();
-        vl.childAlignment = TextAnchor.UpperCenter; vl.spacing = 6f;
-        vl.childControlWidth = true; vl.childControlHeight = false;
-        vl.childForceExpandWidth = true; vl.childForceExpandHeight = false;
 
-        // Boat icon — uses sprite from Resources/Icons/boat, falls back to placeholder
-        var boatGO = NewGO("BoatIcon", area.transform); LE(boatGO, 88f);
-        var boatImg = boatGO.AddComponent<Image>();
-        boatImg.color = Color.white;
-        boatImg.preserveAspect = true;
-        var bob = boatGO.AddComponent<Bobber>(); bob.amplitude = 8f; bob.tiltDeg = 3f; bob.duration = 3f;
+        var runtimeLogo = CreateSpriteFromTexture(logoTexture);
+        if (runtimeLogo != null)
+        {
+            var logoGO = NewGO("LogoImage", area.transform);
+            var logoRT = logoGO.GetComponent<RectTransform>();
+            logoRT.anchorMin = logoRT.anchorMax = new Vector2(0.5f, 0.72f);
+            logoRT.pivot = new Vector2(0.5f, 0.5f);
+            logoRT.sizeDelta = new Vector2(LOGO_IMG_H, LOGO_IMG_H);
+            logoRT.anchoredPosition = Vector2.zero;
 
-        // LEAVE MY BOAT title
-        var titleGO = NewGO("Title", area.transform); LE(titleGO, 64f);
-        var titleTMP = titleGO.AddComponent<TextMeshProUGUI>();
-        titleTMP.text = "LEAVE MY BOAT"; titleTMP.fontSize = 82f;
-        titleTMP.fontStyle = FontStyles.Bold; titleTMP.color = Color.white;
-        titleTMP.alignment = TextAlignmentOptions.Center;
-        titleTMP.outlineWidth = 0.25f; titleTMP.outlineColor = new Color32(3, 105, 161, 255);
+            var logoImg = logoGO.AddComponent<Image>();
+            logoImg.sprite = runtimeLogo;
+            logoImg.color = Color.white;
+            logoImg.preserveAspect = true;
+            logoImg.raycastTarget = false;
+
+            var shadow = logoGO.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0f, 0.12f, 0.24f, 0.35f);
+            shadow.effectDistance = new Vector2(0f, -12f);
+
+            var bounce = logoGO.AddComponent<LogoBounce>();
+            bounce.amplitude = 4f;
+            bounce.stretchAmount = 0.018f;
+            bounce.duration = 3.8f;
+        }
+        else
+        {
+            // Boat icon — uses sprite from Resources/Icons/boat, falls back to placeholder
+            var boatGO = NewGO("BoatIcon", area.transform); LE(boatGO, 88f);
+            var boatImg = boatGO.AddComponent<Image>();
+            boatImg.color = Color.white;
+            boatImg.preserveAspect = true;
+            var bob = boatGO.AddComponent<Bobber>(); bob.amplitude = 8f; bob.tiltDeg = 3f; bob.duration = 3f;
+
+            // LEAVE MY BOAT title
+            var titleGO = NewGO("Title", area.transform); LE(titleGO, 64f);
+            var titleTMP = titleGO.AddComponent<TextMeshProUGUI>();
+            titleTMP.text = "LEAVE MY BOAT"; titleTMP.fontSize = 82f;
+            titleTMP.fontStyle = FontStyles.Bold; titleTMP.color = Color.white;
+            titleTMP.alignment = TextAlignmentOptions.Center;
+            titleTMP.outlineWidth = 0.25f; titleTMP.outlineColor = new Color32(3, 105, 161, 255);
+        }
 
         // Subtitle
-        var subGO = NewGO("Subtitle", area.transform); LE(subGO, 22f);
-        var subTMP = subGO.AddComponent<TextMeshProUGUI>();
-        subTMP.text = "HARBOR ESCAPE"; subTMP.fontSize = 29f;
-        subTMP.fontStyle = FontStyles.Bold; subTMP.color = new Color(1f,1f,1f,0.65f);
-        subTMP.alignment = TextAlignmentOptions.Center; subTMP.characterSpacing = 4f;
+        var subGO = NewGO("Subtitle", area.transform);
+        var subRT = subGO.GetComponent<RectTransform>();
+        subRT.anchorMin = subRT.anchorMax = new Vector2(0.5f, 0.14f);
+        subRT.pivot = new Vector2(0.5f, 0.5f);
+        subRT.sizeDelta = new Vector2(640f, 32f);
+        subRT.anchoredPosition = Vector2.zero;
 
-        // Stars
-        var starsGO = NewGO("Stars", area.transform); LE(starsGO, 28f);
-        var hl = starsGO.AddComponent<HorizontalLayoutGroup>();
-        hl.childAlignment = TextAnchor.MiddleCenter; hl.spacing = 4f;
-        hl.childControlWidth = false; hl.childControlHeight = false;
-        hl.childForceExpandWidth = false; hl.childForceExpandHeight = false;
-        for (int i = 0; i < 5; i++)
-        {
-            var s = NewGO($"Star{i}", starsGO.transform);
-            s.GetComponent<RectTransform>().sizeDelta = new Vector2(22f, 22f);
-            var st = s.AddComponent<TextMeshProUGUI>();
-            st.text = "★"; st.fontSize = 18f; st.color = STAR_CLR;
-            st.alignment = TextAlignmentOptions.Center;
-        }
+        var subTMP = subGO.AddComponent<TextMeshProUGUI>();
+        subTMP.text = "HARBOR ESCAPE"; subTMP.fontSize = 30f;
+        subTMP.fontStyle = FontStyles.Bold; subTMP.color = new Color(1f,1f,1f,0.7f);
+        subTMP.alignment = TextAlignmentOptions.Center; subTMP.characterSpacing = 4f;
     }
 
     // ── Buttons ───────────────────────────────────────────────────────────────
@@ -234,7 +306,7 @@ public class HomeScreenBuilder : MonoBehaviour
 
         // PLAY
         var playGO = NewGO("PlayButton", area.transform); LE(playGO, BTN_PLAY_H);
-        var playImg = playGO.AddComponent<Image>(); playImg.color = ORANGE; Round(playImg);
+        var playImg = playGO.AddComponent<Image>(); playImg.color = ORANGE; Flat(playImg);
 
         var shadowGO = NewGO("Shadow", playGO.transform);
         var shadowRT = shadowGO.GetComponent<RectTransform>();
@@ -242,7 +314,7 @@ public class HomeScreenBuilder : MonoBehaviour
         shadowRT.pivot = new Vector2(0.5f,1f);
         shadowRT.offsetMin = new Vector2(4f,-8f); shadowRT.offsetMax = new Vector2(-4f,0f);
         var shadowImg = shadowGO.AddComponent<Image>(); shadowImg.color = ORANGE_SHD;
-        shadowImg.raycastTarget = false; Round(shadowImg);
+        shadowImg.raycastTarget = false; Flat(shadowImg);
 
         var playBtn = playGO.AddComponent<Button>(); playBtn.targetGraphic = playImg;
         TintBtn(playBtn, new Color(1f,0.72f,0.17f,1f), new Color(0.86f,0.52f,0.02f,1f));
@@ -274,7 +346,7 @@ public class HomeScreenBuilder : MonoBehaviour
         var go = NewGO(name, parent); LE(go, height);
 
         // Outer border layer
-        var borderImg = go.AddComponent<Image>(); borderImg.color = GLASS_BRD; Round(borderImg);
+        var borderImg = go.AddComponent<Image>(); borderImg.color = GLASS_BRD; Flat(borderImg);
 
         // Inner fill (inset 2px)
         var fill = NewGO("Fill", go.transform);
@@ -282,7 +354,7 @@ public class HomeScreenBuilder : MonoBehaviour
         fillRT.anchorMin = Vector2.zero; fillRT.anchorMax = Vector2.one;
         fillRT.offsetMin = new Vector2(2f,2f); fillRT.offsetMax = new Vector2(-2f,-2f);
         var fillImg = fill.AddComponent<Image>(); fillImg.color = GLASS_FILL;
-        fillImg.raycastTarget = false; Round(fillImg);
+        fillImg.raycastTarget = false; Flat(fillImg);
 
         var btn = go.AddComponent<Button>(); btn.targetGraphic = borderImg;
         TintBtn(btn, new Color(1f,1f,1f,0.32f), new Color(1f,1f,1f,0.12f));
@@ -293,9 +365,12 @@ public class HomeScreenBuilder : MonoBehaviour
 
     void BuildVersion(Transform parent)
     {
-        var sp = NewGO("VersionSpacer", parent);
-        sp.AddComponent<LayoutElement>().preferredHeight = VERSION_PAD;
-        var go = NewGO("Version", parent); LE(go, VERSION_H);
+        var go = NewGO("Version", parent);
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0f);
+        rt.pivot = new Vector2(0.5f, 0f);
+        rt.anchoredPosition = new Vector2(0f, BOTTOM_PAD);
+        rt.sizeDelta = new Vector2(180f, VERSION_H);
         var tmp = go.AddComponent<TextMeshProUGUI>();
         tmp.text = $"v{Application.version}"; tmp.fontSize = 11f;
         tmp.color = new Color(1f,1f,1f,0.3f); tmp.alignment = TextAlignmentOptions.Center;
@@ -306,11 +381,11 @@ public class HomeScreenBuilder : MonoBehaviour
 
     void ApplySprites(Transform panel)
     {
-        SetIcon(panel, "Content/Buttons/PlayButton/AnchorIcon",           LoadIcon("anchor"));
-        SetIcon(panel, "Content/Buttons/LevelsButton/LevelsIcon",         LoadIcon("levels"));
-        SetIcon(panel, "Content/Buttons/BottomRow/SettingsButton/SettingsIcon", LoadIcon("settings"));
-        SetIcon(panel, "Content/Buttons/BottomRow/CreditsButton/CreditsIcon",   LoadIcon("credits"));
-        SetIcon(panel, "Content/LogoArea/BoatIcon",                       LoadIcon("boat"));
+        SetIcon(panel, "Content/CenterStack/Buttons/PlayButton/AnchorIcon",           LoadIcon("anchor"));
+        SetIcon(panel, "Content/CenterStack/Buttons/LevelsButton/LevelsIcon",         LoadIcon("levels"));
+        SetIcon(panel, "Content/CenterStack/Buttons/BottomRow/SettingsButton/SettingsIcon", LoadIcon("settings"));
+        SetIcon(panel, "Content/CenterStack/Buttons/BottomRow/CreditsButton/CreditsIcon",   LoadIcon("credits"));
+        SetIcon(panel, "Content/CenterStack/LogoArea/BoatIcon",                       LoadIcon("boat"));
     }
 
     static void SetIcon(Transform panel, string path, Sprite sprite)
@@ -331,10 +406,10 @@ public class HomeScreenBuilder : MonoBehaviour
         mm.homePanel = panel;
 
         Button Find(string path) => panel.transform.Find(path)?.GetComponent<Button>();
-        mm.playButton        = Find("Content/Buttons/PlayButton");
-        mm.levelSelectButton = Find("Content/Buttons/LevelsButton");
-        mm.settingsButton    = Find("Content/Buttons/BottomRow/SettingsButton");
-        mm.creditsButton     = Find("Content/Buttons/BottomRow/CreditsButton");
+        mm.playButton        = Find("Content/CenterStack/Buttons/PlayButton");
+        mm.levelSelectButton = Find("Content/CenterStack/Buttons/LevelsButton");
+        mm.settingsButton    = Find("Content/CenterStack/Buttons/BottomRow/SettingsButton");
+        mm.creditsButton     = Find("Content/CenterStack/Buttons/BottomRow/CreditsButton");
         mm.RebindButtonListeners();
 
         Debug.Log("HomeScreenBuilder: Wired MainMenuManager.");
@@ -392,9 +467,9 @@ public class HomeScreenBuilder : MonoBehaviour
         return img;
     }
 
-    // ── Rounded sprite (generated at runtime, cached) ─────────────────────────
-
     static Sprite _roundedSprite;
+    static Sprite _flatSprite;
+    static readonly System.Collections.Generic.Dictionary<Texture2D, Sprite> s_RuntimeSprites = new System.Collections.Generic.Dictionary<Texture2D, Sprite>();
 
     static Sprite GetRoundedSprite()
     {
@@ -432,6 +507,95 @@ public class HomeScreenBuilder : MonoBehaviour
     {
         img.sprite = GetRoundedSprite();
         img.type   = Image.Type.Sliced;
+    }
+
+    static Sprite GetFlatSprite()
+    {
+        if (_flatSprite != null) return _flatSprite;
+
+        var tex = new Texture2D(4, 4, TextureFormat.RGBA32, false);
+        tex.name = "UI_RuntimeFlat_MainMenu";
+
+        var pixels = new Color32[16];
+        for (int i = 0; i < pixels.Length; i++)
+            pixels[i] = new Color32(255, 255, 255, 255);
+
+        tex.SetPixels32(pixels);
+        tex.Apply();
+
+        _flatSprite = Sprite.Create(
+            tex,
+            new Rect(0, 0, 4, 4),
+            new Vector2(0.5f, 0.5f),
+            100f);
+
+        return _flatSprite;
+    }
+
+    static void Flat(Image img)
+    {
+        img.sprite = GetFlatSprite();
+        img.type = Image.Type.Simple;
+    }
+
+    static Sprite CreateSpriteFromTexture(Texture2D texture)
+    {
+        if (texture == null) return null;
+        if (s_RuntimeSprites.TryGetValue(texture, out var sprite) && sprite != null) return sprite;
+
+        Rect spriteRect = GetOpaqueTextureRect(texture, 12);
+        sprite = Sprite.Create(
+            texture,
+            spriteRect,
+            new Vector2(0.5f, 0.5f),
+            100f);
+
+        s_RuntimeSprites[texture] = sprite;
+        return sprite;
+    }
+
+    static Rect GetOpaqueTextureRect(Texture2D texture, int padding)
+    {
+        if (texture == null)
+            return new Rect(0f, 0f, 1f, 1f);
+
+        try
+        {
+            var pixels = texture.GetPixels32();
+            int minX = texture.width;
+            int minY = texture.height;
+            int maxX = -1;
+            int maxY = -1;
+
+            for (int y = 0; y < texture.height; y++)
+            {
+                int row = y * texture.width;
+                for (int x = 0; x < texture.width; x++)
+                {
+                    if (pixels[row + x].a <= 8)
+                        continue;
+
+                    if (x < minX) minX = x;
+                    if (y < minY) minY = y;
+                    if (x > maxX) maxX = x;
+                    if (y > maxY) maxY = y;
+                }
+            }
+
+            if (maxX < minX || maxY < minY)
+                return new Rect(0f, 0f, texture.width, texture.height);
+
+            minX = Mathf.Max(0, minX - padding);
+            minY = Mathf.Max(0, minY - padding);
+            maxX = Mathf.Min(texture.width - 1, maxX + padding);
+            maxY = Mathf.Min(texture.height - 1, maxY + padding);
+
+            return new Rect(minX, minY, maxX - minX + 1, maxY - minY + 1);
+        }
+        catch (UnityException)
+        {
+            return new Rect(0f, 0f, texture.width, texture.height);
+        }
     }
 
     static GameObject Label(string name, Transform parent, string text,
@@ -504,6 +668,42 @@ public class Bobber : MonoBehaviour
         float s = Mathf.Sin((t / duration) * Mathf.PI * 2f);
         var p = rt.anchoredPosition; p.y = baseY + s * amplitude; rt.anchoredPosition = p;
         rt.localRotation = Quaternion.Euler(0f, 0f, s * tiltDeg);
+    }
+}
+
+public class LogoBounce : MonoBehaviour
+{
+    public float amplitude = 4f;
+    public float stretchAmount = 0.018f;
+    public float duration = 3.8f;
+
+    RectTransform rt;
+    float t;
+    float baseY;
+    Vector3 baseScale;
+
+    void Awake()
+    {
+        rt = GetComponent<RectTransform>();
+        baseY = rt.anchoredPosition.y;
+        baseScale = rt.localScale;
+    }
+
+    void Update()
+    {
+        t += Time.deltaTime;
+
+        float phase = (t / duration) * Mathf.PI * 2f;
+        float bob = Mathf.Sin(phase);
+        float stretch = Mathf.Sin(phase - 0.35f);
+
+        var pos = rt.anchoredPosition;
+        pos.y = baseY + bob * amplitude;
+        rt.anchoredPosition = pos;
+
+        float scaleX = 1f - stretch * stretchAmount;
+        float scaleY = 1f + stretch * stretchAmount;
+        rt.localScale = new Vector3(baseScale.x * scaleX, baseScale.y * scaleY, baseScale.z);
     }
 }
 

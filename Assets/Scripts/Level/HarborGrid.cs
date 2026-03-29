@@ -1,5 +1,5 @@
 ﻿// Assets/Scripts/Level/HarborGrid.cs
-// Fully code-driven — assign only GridManager. No materials needed.
+// Fully code-driven — assign GridManager and optionally a stylized water texture.
 
 using UnityEngine;
 
@@ -7,6 +7,9 @@ public class HarborGrid : MonoBehaviour
 {
     [Header("References")]
     public GridManager gridManager;
+
+    [Header("Stylized Water")]
+    public Texture2D stylizedWaterTexture;
 
     [Header("Tweak (optional)")]
     public float cellSize        = 1f;
@@ -21,6 +24,7 @@ public class HarborGrid : MonoBehaviour
     static readonly Color COL_DOCK_RIM  = Hex("2a6d9a");
     static readonly Color COL_DOCK_WALL = Hex("235f88");
     static readonly Color COL_BOLT      = Hex("7fc8f2");
+    static readonly Color COL_WATER_BACKING = Hex("0d2f4d");
 
     void Start()
     {
@@ -40,13 +44,21 @@ public class HarborGrid : MonoBehaviour
     void DrawWaterFloor()
     {
         int w = gridManager.width, h = gridManager.height;
-        float tileH = 0.05f;   // thin but real 3D slab — sits clearly below boats at Y=0
-        float floorY = -tileH * 0.5f;
+        float tileH = 0.06f;
+        float backingY = -tileH * 0.5f - 0.025f;
 
         // Backing plate
         Cube("WaterBacking", transform,
-            new Vector3((w-1)*cellSize*.5f, floorY - 0.01f, (h-1)*cellSize*.5f),
-            new Vector3(w*cellSize+.06f, tileH, h*cellSize+.06f), COL_GRID_BG);
+            new Vector3((w-1)*cellSize*.5f, backingY, (h-1)*cellSize*.5f),
+            new Vector3(w*cellSize+.08f, tileH, h*cellSize+.08f), COL_WATER_BACKING);
+
+        if (stylizedWaterTexture != null)
+        {
+            DrawStylizedWaterSurface(w, h);
+            return;
+        }
+
+        float floorY = -tileH * 0.5f;
 
         // Per-cell water tiles
         for (int x = 0; x < w; x++)
@@ -55,6 +67,50 @@ public class HarborGrid : MonoBehaviour
                 new Vector3(x*cellSize, floorY, y*cellSize),
                 new Vector3(cellSize-.04f, tileH, cellSize-.04f),
                 (x+y)%2==0 ? COL_WATER_A : COL_WATER_B);
+    }
+
+    void DrawStylizedWaterSurface(int w, int h)
+    {
+        float backdropSize = Mathf.Max(w, h) * cellSize + 24f;
+        var water = GameObject.CreatePrimitive(PrimitiveType.Plane);
+        water.name = "StylizedWaterSurface";
+        water.transform.SetParent(transform, false);
+        water.transform.position = new Vector3((w - 1) * cellSize * 0.5f, -0.013f, (h - 1) * cellSize * 0.5f);
+        water.transform.localScale = new Vector3(backdropSize / 10f, 1f, backdropSize / 10f);
+
+        var renderer = water.GetComponent<Renderer>();
+        if (renderer != null)
+            renderer.sharedMaterial = BuildStylizedWaterMaterial(w, h);
+
+        var animator = water.AddComponent<AnimatedMaterialOffset>();
+        animator.scrollSpeed = new Vector2(0.02f, -0.008f);
+
+        Destroy(water.GetComponent<Collider>());
+    }
+
+    Material BuildStylizedWaterMaterial(int w, int h)
+    {
+        var shader = Shader.Find("Universal Render Pipeline/Unlit")
+                  ?? Shader.Find("Unlit/Texture")
+                  ?? Shader.Find("Universal Render Pipeline/Lit")
+                  ?? Shader.Find("Standard");
+
+        var material = new Material(shader);
+        stylizedWaterTexture.wrapMode = TextureWrapMode.Repeat;
+
+        if (material.HasProperty("_BaseMap")) material.SetTexture("_BaseMap", stylizedWaterTexture);
+        if (material.HasProperty("_MainTex")) material.SetTexture("_MainTex", stylizedWaterTexture);
+        if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", new Color(0.53f, 0.89f, 0.98f, 1f));
+        if (material.HasProperty("_Color")) material.SetColor("_Color", new Color(0.53f, 0.89f, 0.98f, 1f));
+        if (material.HasProperty("_Surface")) material.SetFloat("_Surface", 0f);
+        if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.12f);
+        if (material.HasProperty("_Metallic")) material.SetFloat("_Metallic", 0f);
+
+        Vector2 tiling = new Vector2(Mathf.Max(8f, w * 1.35f), Mathf.Max(8f, h * 1.35f));
+        if (material.HasProperty("_BaseMap")) material.SetTextureScale("_BaseMap", tiling);
+        if (material.HasProperty("_MainTex")) material.SetTextureScale("_MainTex", tiling);
+
+        return material;
     }
 
     void DrawGridLines()
