@@ -190,17 +190,19 @@ public class HomeScreenBuilder : MonoBehaviour
         // Title
         var titleGO  = NewGO("Title", area.transform); LE(titleGO, 64f);
         var titleTMP = titleGO.AddComponent<TextMeshProUGUI>();
-        titleTMP.text = "BOAT JAM"; titleTMP.fontSize = 82f;
+        titleTMP.text = LocalizationManager.T("ui.home.title"); titleTMP.fontSize = 82f;
         titleTMP.fontStyle = FontStyles.Bold; titleTMP.color = Color.white;
         titleTMP.alignment = TextAlignmentOptions.Center;
         titleTMP.outlineWidth = 0.25f; titleTMP.outlineColor = new Color32(3, 105, 161, 255);
+        Loc(titleGO, "ui.home.title");
 
         // Subtitle
         var subGO  = NewGO("Subtitle", area.transform); LE(subGO, 22f);
         var subTMP = subGO.AddComponent<TextMeshProUGUI>();
-        subTMP.text = "HARBOR ESCAPE"; subTMP.fontSize = 29f;
+        subTMP.text = LocalizationManager.T("ui.home.subtitle"); subTMP.fontSize = 29f;
         subTMP.fontStyle = FontStyles.Bold; subTMP.color = new Color(1f,1f,1f,0.65f);
         subTMP.alignment = TextAlignmentOptions.Center; subTMP.characterSpacing = 4f;
+        Loc(subGO, "ui.home.subtitle");
 
         // Stars — sprite images loaded from Assets/Resources/star/
         // Name your star PNG "star.png" (or "star_filled.png") in that folder,
@@ -261,12 +263,13 @@ public class HomeScreenBuilder : MonoBehaviour
         var playBtn = playGO.AddComponent<Button>(); playBtn.targetGraphic = playImg;
         TintBtn(playBtn, new Color(1f,0.72f,0.17f,1f), new Color(0.86f,0.52f,0.02f,1f));
 
-        var playLbl = Label("Label", playGO.transform, "PLAY", 38f, FontStyles.Bold, Color.white);
+        var playLbl = Label("Label", playGO.transform, LocalizationManager.T("ui.buttons.play"), 38f, FontStyles.Bold, Color.white);
         StretchFill(playLbl); playLbl.GetComponent<TextMeshProUGUI>().raycastTarget = false;
+        Loc(playLbl, "ui.buttons.play");
         AddBtnIcon(playGO.transform, "AnchorIcon", -80f, 42f);
 
         // LEVELS
-        SecondaryBtn(wrapper.transform, "LevelsButton", "LEVELS", BTN_SEC_H, 38f);
+        SecondaryBtn(wrapper.transform, "LevelsButton", LocalizationManager.T("ui.buttons.levels"), BTN_SEC_H, 38f, "ui.buttons.levels");
         AddBtnIcon(wrapper.transform.Find("LevelsButton"), "LevelsIcon", -110f, 52f);
 
         // Settings + Credits row
@@ -275,9 +278,9 @@ public class HomeScreenBuilder : MonoBehaviour
         rowHL.spacing = BTN_GAP; rowHL.childAlignment = TextAnchor.MiddleCenter;
         rowHL.childControlWidth = true; rowHL.childControlHeight = true;
         rowHL.childForceExpandWidth = true; rowHL.childForceExpandHeight = true;
-        SecondaryBtn(rowGO.transform, "SettingsButton", "Settings", BTN_ROW_H, 32f);
+        SecondaryBtn(rowGO.transform, "SettingsButton", LocalizationManager.T("ui.buttons.settings"), BTN_ROW_H, 32f, "ui.buttons.settings");
         AddBtnIcon(rowGO.transform.Find("SettingsButton"), "SettingsIcon", -92f, 52f);
-        SecondaryBtn(rowGO.transform, "CreditsButton",  "Credits",  BTN_ROW_H, 32f);
+        SecondaryBtn(rowGO.transform, "CreditsButton",  LocalizationManager.T("ui.buttons.credits"),  BTN_ROW_H, 32f, "ui.buttons.credits");
         AddBtnIcon(rowGO.transform.Find("CreditsButton"), "CreditsIcon", -88f, 52f);
 
         // Version label
@@ -386,7 +389,7 @@ public class HomeScreenBuilder : MonoBehaviour
         AddBtnIcon(rowGO.transform.Find("CreditsButton"), "CreditsIcon", -88f, 52f);
     }
 
-    void SecondaryBtn(Transform parent, string name, string text, float height, float fontSize)
+    void SecondaryBtn(Transform parent, string name, string text, float height, float fontSize, string locKey = null)
     {
         var go = NewGO(name, parent); LE(go, height);
 
@@ -406,6 +409,7 @@ public class HomeScreenBuilder : MonoBehaviour
 
         var lbl = Label("Label", go.transform, text, fontSize, FontStyles.Bold, Color.white);
         StretchFill(lbl); lbl.GetComponent<TextMeshProUGUI>().raycastTarget = false;
+        if (!string.IsNullOrEmpty(locKey)) Loc(lbl, locKey);
     }
 
     void BuildVersion(Transform parent)
@@ -592,6 +596,12 @@ public class HomeScreenBuilder : MonoBehaviour
     static Color Hex(string hex)
     {
         ColorUtility.TryParseHtmlString("#" + hex, out var c); return c;
+    }
+
+    static void Loc(GameObject go, string key)
+    {
+        var lt = go.AddComponent<LocalizedText>();
+        lt.SetKey(key);
     }
 }
 

@@ -34,29 +34,30 @@ public class SettingsScreenBuilder : MonoBehaviour
     static Sprite Icon(string name) => Resources.Load<Sprite>($"Icons/{name}");
 
     // ── Layout ────────────────────────────────────────────────────────────────
-    const float SIDE_PAD   = 28f;
-    const float TOP_PAD    = 56f;   // room for status bar / notch
-    const float HDR_H      = 56f;   // header bar height
-    const float SEC_LBL_H  = 28f;   // section label height
-    const float SEC_GAP    = 12f;   // gap above a section label
-    const float ROW_H      = 68f;   // each settings row
+    const float SIDE_PAD   = 24f;
+    const float TOP_PAD    = 60f;   // room for status bar / notch
+    const float HDR_H      = 64f;   // header bar height
+    const float SEC_LBL_H  = 32f;   // section label height
+    const float SEC_GAP    = 14f;   // gap above a section label
+    const float ROW_H      = 76f;   // each settings row
     const float CARD_RADIUS = 22f;
-    const float ICON_BOX   = 36f;   // the coloured icon bubble
-    const float ICON_IMG   = 22f;   // icon image inside the bubble
+    const float ICON_BOX   = 44f;   // the coloured icon bubble
+    const float ICON_IMG   = 26f;   // icon image inside the bubble
     const float SLIDER_H   = 6f;
-    const float TOGGLE_W   = 50f;
-    const float TOGGLE_H   = 28f;
-    const float CHIP_W     = 52f;
-    const float CHIP_H     = 30f;
-    const float CHIP_GAP   = 6f;
-    const float RESET_H    = 56f;
-    const float VERSION_H  = 20f;
-    const float BTM_PAD    = 36f;
+    const float TOGGLE_W   = 54f;
+    const float TOGGLE_H   = 30f;
+    const float CHIP_W     = 56f;
+    const float CHIP_H     = 32f;
+    const float CHIP_GAP   = 7f;
+    const float RESET_H    = 62f;
+    const float VERSION_H  = 24f;
+    const float BTM_PAD    = 40f;
+    const float CTRL_INSET = 16f;   // right inset for all controls (toggles/chips) inside card
 
     // ── Colors (identical to HomeScreenBuilder) ───────────────────────────────
-    static readonly Color SKY_TOP    = Hex("0ea5e9");
-    static readonly Color SKY_MID    = Hex("0284c7");
-    static readonly Color SEA_MID    = Hex("1e3a5f");
+    static readonly Color SKY_TOP    = Hex("0878a8");
+    static readonly Color SKY_MID    = Hex("065f8f");
+    static readonly Color SEA_MID    = Hex("152d4a");
     static readonly Color ORANGE     = new Color(0.96f, 0.62f, 0.07f, 1f);
     static readonly Color ORANGE_DRK = new Color(0.85f, 0.45f, 0.02f, 1f);
     static readonly Color GLASS_BRD  = new Color(1f, 1f, 1f, 0.22f);
@@ -153,10 +154,12 @@ public class SettingsScreenBuilder : MonoBehaviour
         var bg = MakeGO("Background", root);
         Stretch(bg);
 
-        // Same uniform sky + subtle sea at the bottom
-        Layer("Sky",     bg.transform, 0.18f, 1.0f,  SKY_TOP);
-        Layer("Sea_Mid", bg.transform, 0.00f, 0.26f, SKY_MID);
-        Layer("Sea_Bot", bg.transform, 0.00f, 0.09f, SEA_MID);
+        // 5-stop gradient — darkened for readability
+        Layer("Sky_Top",  bg.transform, 0.55f, 1.00f, SKY_TOP);
+        Layer("Sky_Mid",  bg.transform, 0.25f, 0.55f, SKY_MID);
+        Layer("Sky_Low",  bg.transform, 0.10f, 0.25f, Hex("05496e"));
+        Layer("Sea_Mid",  bg.transform, 0.04f, 0.10f, SEA_MID);
+        Layer("Sea_Bot",  bg.transform, 0.00f, 0.04f, Hex("0a1628"));
 
         // Drifting clouds (top area, same as home)
         MakeCloud(bg.transform, "Cloud1", 120f, 34f, -200f, 0.90f, 24f,  0f);
@@ -229,31 +232,31 @@ public class SettingsScreenBuilder : MonoBehaviour
         BuildHeader(content.transform);
 
         // ── Section: Sound ────────────────────────────────────────────────────
-        SectionLabel(content.transform, "🔊  SOUND");
         var soundCard = Card(content.transform);
-        musicSlider = RowSlider(soundCard.transform, "Music",        "music",     TINT_SOUND, 0.7f);
+        musicSlider = RowSlider(soundCard.transform, "Music",        "music",     TINT_SOUND, 0.7f, "ui.settings.music");
         HorizontalDivider(soundCard.transform);
-        sfxSlider   = RowSlider(soundCard.transform, "Sound Effects","sfx",       TINT_SOUND, 0.9f);
+        sfxSlider   = RowSlider(soundCard.transform, "Sound Effects","sfx",       TINT_SOUND, 0.9f, "ui.settings.sound_effects");
 
         // ── Section: Display ──────────────────────────────────────────────────
-        SectionLabel(content.transform, "🌊  DISPLAY");
+        Gap(content.transform, 14f);
         var displayCard = Card(content.transform);
-        vibrationToggle = RowToggle(displayCard.transform, "Vibration",  "Haptic feedback on interactions", "vibration", TINT_DISPLAY, true);
+        vibrationToggle = RowToggle(displayCard.transform, "Vibration",  "Haptic feedback on interactions", "vibration", TINT_DISPLAY, true, "ui.settings.vibration", "ui.settings.vibration_desc");
         HorizontalDivider(displayCard.transform);
         RowChips(displayCard.transform,  "Language", "",       "language", TINT_DISPLAY,
-                 new[]{"EN","FR","ES"}, 0);
+                 new[]{"EN","FR","ES"}, 0, "ui.settings.language", null, null);
         HorizontalDivider(displayCard.transform);
         RowChips(displayCard.transform,  "Graphics Quality", "Higher = more battery", "graphics", TINT_DISPLAY,
-                 new[]{"Low","Mid","High"}, 1);
+                 new[]{"Low","Mid","High"}, 1, "ui.settings.graphics_quality", "ui.settings.graphics_desc",
+                 new[]{"ui.settings.graphics_low","ui.settings.graphics_mid","ui.settings.graphics_high"});
 
         // ── Section: Game ─────────────────────────────────────────────────────
-        SectionLabel(content.transform, "⚓  GAME");
+        Gap(content.transform, 14f);
         var gameCard = Card(content.transform);
-        hintsToggle = RowToggle(gameCard.transform, "Show Hints",  "Display move suggestions", "hints", TINT_GAME, false);
+        hintsToggle = RowToggle(gameCard.transform, "Show Hints",  "Display move suggestions", "hints", TINT_GAME, false, "ui.settings.show_hints", "ui.settings.hints_desc");
         HorizontalDivider(gameCard.transform);
-        timerToggle = RowToggle(gameCard.transform, "Show Timer",  "Track time per puzzle",    "timer", TINT_GAME, true);
+        timerToggle = RowToggle(gameCard.transform, "Show Timer",  "Track time per puzzle",    "timer", TINT_GAME, true, "ui.settings.show_timer", "ui.settings.timer_desc");
         HorizontalDivider(gameCard.transform);
-        leaderboardButton = RowChevron(gameCard.transform, "Leaderboard", "Compare with other captains", "leaderboard", TINT_GAME);
+        leaderboardButton = RowChevron(gameCard.transform, "Leaderboard", "Compare with other captains", "leaderboard", TINT_GAME, "ui.settings.leaderboard", "ui.settings.leaderboard_desc");
 
         // ── Reset button ──────────────────────────────────────────────────────
         Gap(content.transform, 18f);
@@ -265,7 +268,7 @@ public class SettingsScreenBuilder : MonoBehaviour
         LE(verGO, VERSION_H);
         var verTMP = verGO.AddComponent<TextMeshProUGUI>();
         verTMP.text           = $"v{Application.version}";
-        verTMP.fontSize       = S(11f);
+        verTMP.fontSize       = S(13f);
         verTMP.color          = new Color(1f,1f,1f,0.25f);
         verTMP.alignment      = TextAlignmentOptions.Center;
         verTMP.characterSpacing = S(2f);
@@ -278,74 +281,159 @@ public class SettingsScreenBuilder : MonoBehaviour
         var hdr = MakeGO("Header", parent);
         LE(hdr, HDR_H);
 
-        var hl = hdr.AddComponent<HorizontalLayoutGroup>();
-        hl.childAlignment       = TextAnchor.MiddleCenter;
-        hl.spacing              = 0f;
-        hl.childControlWidth    = false;
-        hl.childControlHeight   = true;
-        hl.childForceExpandWidth  = false;
-        hl.childForceExpandHeight = true;
+        // ── Back button — absolutely anchored to LEFT of header ──
+        var backGO = MakeGO("BackButton", hdr.transform);
+        var backRT = backGO.GetComponent<RectTransform>();
+        backRT.anchorMin = new Vector2(0f, 0.5f);
+        backRT.anchorMax = new Vector2(0f, 0.5f);
+        backRT.pivot     = new Vector2(0f, 0.5f);
+        backRT.anchoredPosition = new Vector2(0f, 0f);
+        backRT.sizeDelta = new Vector2(S(46f), S(46f));
 
-        // Back button (left)
-        var backGO  = MakeGO("BackButton", hdr.transform);
-        var backLE  = backGO.AddComponent<LayoutElement>();
-        backLE.preferredWidth = S(48f); backLE.flexibleWidth = 0f;
         var backImg = backGO.AddComponent<Image>();
         backImg.color = WHITE12; Rounded(backImg);
-        backButton = backGO.AddComponent<Button>();
-        TintBtn(backButton, WHITE25, new Color(1f,1f,1f,0.06f));
 
-        var backIconImg = MakeGO("Icon", backGO.transform);
-        var biRT = backIconImg.GetComponent<RectTransform>();
+        // Border overlay on back button
+        var backBorder = MakeGO("Border", backGO.transform);
+        Stretch(backBorder);
+        var bbImg = backBorder.AddComponent<Image>();
+        bbImg.color = new Color(1f, 1f, 1f, 0.25f); Rounded(bbImg);
+        bbImg.raycastTarget = false;
+
+        backButton = backGO.AddComponent<Button>();
+        TintBtn(backButton, WHITE25, new Color(1f, 1f, 1f, 0.06f));
+
+        // Icon inside back button
+        var backIconGO = MakeGO("Icon", backGO.transform);
+        var biRT = backIconGO.GetComponent<RectTransform>();
         biRT.anchorMin = biRT.anchorMax = new Vector2(0.5f, 0.5f);
         biRT.pivot     = new Vector2(0.5f, 0.5f);
-        biRT.sizeDelta = new Vector2(S(22f), S(22f));
-        var biImg = backIconImg.AddComponent<Image>();
+        biRT.sizeDelta = new Vector2(S(24f), S(24f));
+        var biImg = backIconGO.AddComponent<Image>();
         biImg.color = WHITE; biImg.preserveAspect = true; biImg.raycastTarget = false;
         var backSprite = Icon("back");
-        if (backSprite != null) biImg.sprite = backSprite;
-        // Fallback: small white "‹" label if no sprite
-        if (backSprite == null)
+        if (backSprite != null)
         {
+            biImg.sprite = backSprite;
+        }
+        else
+        {
+            // Fallback text chevron
             var bTxt = MakeGO("Label", backGO.transform);
             StretchFill(bTxt);
             var bTMP = bTxt.AddComponent<TextMeshProUGUI>();
-            bTMP.text = "‹"; bTMP.fontSize = S(32f); bTMP.color = WHITE;
+            bTMP.text = "‹"; bTMP.fontSize = S(34f); bTMP.color = WHITE;
             bTMP.alignment = TextAlignmentOptions.Center; bTMP.raycastTarget = false;
-            Destroy(backIconImg); // remove blank image
+            if (Application.isPlaying) Destroy(backIconGO); else DestroyImmediate(backIconGO);
         }
 
-        // Title (centre, fills remaining space)
-        var titleGO  = MakeGO("Title", hdr.transform);
-        var titleLE  = titleGO.AddComponent<LayoutElement>();
-        titleLE.flexibleWidth = 1f;
-        var titleTMP = titleGO.AddComponent<TextMeshProUGUI>();
-        titleTMP.text        = "SETTINGS";
-        titleTMP.fontSize    = S(28f);
-        titleTMP.fontStyle   = FontStyles.Bold;
-        titleTMP.color       = WHITE;
-        titleTMP.alignment   = TextAlignmentOptions.Center;
+        // ── Title — centred in full header width using HorizontalLayoutGroup ──
+        var titleGO = MakeGO("Title", hdr.transform);
+        var titleRT = titleGO.GetComponent<RectTransform>();
+        titleRT.anchorMin = Vector2.zero;
+        titleRT.anchorMax = Vector2.one;
+        titleRT.offsetMin = titleRT.offsetMax = Vector2.zero;
 
-        // Ghost spacer (right) — mirrors back button width so title stays centred
-        var ghost = MakeGO("Ghost", hdr.transform);
-        var gLE   = ghost.AddComponent<LayoutElement>();
-        gLE.preferredWidth = S(48f); gLE.flexibleWidth = 0f;
+        // Centred container that auto-sizes to fit icon + text
+        var titleContent = MakeGO("TitleContent", titleGO.transform);
+        var tcRT = titleContent.GetComponent<RectTransform>();
+        tcRT.anchorMin = new Vector2(0.5f, 0.5f);
+        tcRT.anchorMax = new Vector2(0.5f, 0.5f);
+        tcRT.pivot     = new Vector2(0.5f, 0.5f);
+
+        var tcCSF = titleContent.AddComponent<ContentSizeFitter>();
+        tcCSF.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+        tcCSF.verticalFit   = ContentSizeFitter.FitMode.PreferredSize;
+
+        var titleHL = titleContent.AddComponent<HorizontalLayoutGroup>();
+        titleHL.childAlignment        = TextAnchor.MiddleCenter;
+        titleHL.spacing               = S(8f);
+        titleHL.childControlWidth     = true;
+        titleHL.childControlHeight    = true;
+        titleHL.childForceExpandWidth = false;
+        titleHL.childForceExpandHeight = false;
+
+        // Settings icon sprite (left of title text)
+        var settingsIconGO = MakeGO("SettingsIcon", titleContent.transform);
+        var siLE = settingsIconGO.AddComponent<LayoutElement>();
+        siLE.preferredWidth  = S(30f);
+        siLE.preferredHeight = S(30f);
+        var siImg = settingsIconGO.AddComponent<Image>();
+        siImg.color = WHITE; siImg.preserveAspect = true; siImg.raycastTarget = false;
+        var settingsSprite = Icon("settings");
+        if (settingsSprite != null)
+            siImg.sprite = settingsSprite;
+        else
+            settingsIconGO.SetActive(false);
+
+        // Title text
+        var titleTextGO = MakeGO("TitleText", titleContent.transform);
+        var titleTMP = titleTextGO.AddComponent<TextMeshProUGUI>();
+        titleTMP.text             = LocalizationManager.T("ui.settings.title");
+        titleTMP.fontSize         = S(30f);
+        titleTMP.fontStyle        = FontStyles.Bold;
+        titleTMP.color            = WHITE;
+        titleTMP.alignment        = TextAlignmentOptions.Center;
+        titleTMP.characterSpacing = S(2f);
+        titleTMP.raycastTarget    = false;
+        Loc(titleTextGO, "ui.settings.title");
+        // Shadow to mimic HTML text-shadow
+        var titleShadow = titleTextGO.AddComponent<UnityEngine.UI.Shadow>();
+        titleShadow.effectColor    = Hex("0369a1");
+        titleShadow.effectDistance = new Vector2(0f, -S(2f));
     }
 
     // ── Section label ─────────────────────────────────────────────────────────
 
-    void SectionLabel(Transform parent, string text)
+    void SectionLabel(Transform parent, string text, string iconName = null)
     {
         Gap(parent, SEC_GAP);
         var go  = MakeGO("SectionLabel_" + text, parent);
         LE(go, SEC_LBL_H);
-        var tmp = go.AddComponent<TextMeshProUGUI>();
-        tmp.text           = text;
-        tmp.fontSize       = S(11f);
-        tmp.fontStyle      = FontStyles.Bold;
-        tmp.color          = WHITE40;
-        tmp.alignment      = TextAlignmentOptions.Left;
-        tmp.characterSpacing = S(3f);
+
+        if (iconName != null)
+        {
+            var hl = go.AddComponent<HorizontalLayoutGroup>();
+            hl.childAlignment        = TextAnchor.MiddleLeft;
+            hl.spacing               = S(6f);
+            hl.childControlWidth     = false;
+            hl.childControlHeight    = true;
+            hl.childForceExpandWidth = false;
+            hl.childForceExpandHeight = false;
+            hl.padding               = new RectOffset(SI(4f), 0, 0, 0);
+
+            var iconGO = MakeGO("Icon", go.transform);
+            var iconLE = iconGO.AddComponent<LayoutElement>();
+            iconLE.preferredWidth  = S(16f);
+            iconLE.preferredHeight = S(16f);
+            var iconImg = iconGO.AddComponent<Image>();
+            iconImg.color          = new Color(1f, 1f, 1f, 0.45f);
+            iconImg.preserveAspect = true;
+            iconImg.raycastTarget  = false;
+            var sp = Icon(iconName);
+            if (sp != null) iconImg.sprite = sp;
+
+            var txtGO = MakeGO("Text", go.transform);
+            var txtLE = txtGO.AddComponent<LayoutElement>();
+            txtLE.flexibleWidth = 1f;
+            var tmp = txtGO.AddComponent<TextMeshProUGUI>();
+            tmp.text             = text.ToUpper();
+            tmp.fontSize         = S(13f);
+            tmp.fontStyle        = FontStyles.Bold;
+            tmp.color            = new Color(1f, 1f, 1f, 0.45f);
+            tmp.alignment        = TextAlignmentOptions.Left;
+            tmp.characterSpacing = S(3f);
+        }
+        else
+        {
+            var tmp = go.AddComponent<TextMeshProUGUI>();
+            tmp.text             = text.ToUpper();
+            tmp.fontSize         = S(13f);
+            tmp.fontStyle        = FontStyles.Bold;
+            tmp.color            = new Color(1f, 1f, 1f, 0.45f);
+            tmp.alignment        = TextAlignmentOptions.Left;
+            tmp.characterSpacing = S(3f);
+        }
     }
 
     // ── Card container ────────────────────────────────────────────────────────
@@ -371,13 +459,29 @@ public class SettingsScreenBuilder : MonoBehaviour
         var img = go.AddComponent<Image>();
         img.color = GLASS_FILL; Rounded(img);
 
-        // Outer border layer (rendered behind, inset=0)
+        // Outer border layer (excluded from layout)
         var border = MakeGO("Border", go.transform);
         Stretch(border);
         border.transform.SetAsFirstSibling();
         var bImg = border.AddComponent<Image>();
         bImg.color = GLASS_BRD; Rounded(bImg);
         bImg.raycastTarget = false;
+        var borderLE = border.AddComponent<LayoutElement>();
+        borderLE.ignoreLayout = true;
+
+        // Inner top-edge gloss (very subtle top highlight like glass, excluded from layout)
+        var gloss = MakeGO("Gloss", go.transform);
+        var glossLE = gloss.AddComponent<LayoutElement>();
+        glossLE.ignoreLayout = true;
+        var grt   = gloss.GetComponent<RectTransform>();
+        grt.anchorMin = new Vector2(0f, 1f); grt.anchorMax = new Vector2(1f, 1f);
+        grt.pivot = new Vector2(0.5f, 1f);
+        grt.offsetMin = new Vector2(S(4f),  -S(3f));
+        grt.offsetMax = new Vector2(-S(4f),  0f);
+        grt.sizeDelta = new Vector2(0f, S(3f));
+        var gImg = gloss.AddComponent<Image>();
+        gImg.color = new Color(1f, 1f, 1f, 0.18f); Rounded(gImg);
+        gImg.raycastTarget = false;
 
         return go;
     }
@@ -396,127 +500,194 @@ public class SettingsScreenBuilder : MonoBehaviour
     // ── Row: Slider ───────────────────────────────────────────────────────────
     // Returns the Slider component so MainMenuManager can wire it.
 
-    Slider RowSlider(Transform parent, string label, string iconName, Color tint, float defaultValue)
+    Slider RowSlider(Transform parent, string label, string iconName, Color tint, float defaultValue, string locKey = null)
     {
-        var row = MakeRow(parent, label, "", iconName, tint, false);
-        // The row body already has a label; we need to add the slider below it
+        // Taller row to accommodate label + slider
+        const float SLIDER_ROW_H = 90f;
 
-        // Find the RowBody child and add slider underneath the label
-        var body = row.transform.Find("RowBody");
-
-        // Volume icon small + slider + icon small
-        var sliderWrap = MakeGO("SliderWrap", body.transform);
-        var swRT = sliderWrap.GetComponent<RectTransform>();
-        swRT.anchorMin = new Vector2(0f, 0f);
-        swRT.anchorMax = new Vector2(1f, 0f);
-        swRT.pivot     = new Vector2(0f, 1f);
-        swRT.anchoredPosition = new Vector2(0f, -S(24f));
-        swRT.sizeDelta = new Vector2(0f, S(20f));
-
-        var swHL = sliderWrap.AddComponent<HorizontalLayoutGroup>();
-        swHL.childAlignment        = TextAnchor.MiddleCenter;
-        swHL.spacing               = 8f;
-        swHL.childControlWidth     = false;
-        swHL.childControlHeight    = false;
-        swHL.childForceExpandWidth = false;
-        swHL.childForceExpandHeight = false;
-
-        // Low icon
-        var loIcon = MakeGO("LowIcon", sliderWrap.transform);
-        loIcon.GetComponent<RectTransform>().sizeDelta = new Vector2(S(16f), S(16f));
-        var loTMP = loIcon.AddComponent<TextMeshProUGUI>();
-        loTMP.text = "🔈"; loTMP.fontSize = S(13f);
-        loTMP.alignment = TextAlignmentOptions.Center;
-        loTMP.color = WHITE40;
-
-        // Slider
-        var sliderGO = MakeGO("Slider", sliderWrap.transform);
-        var sliderRT = sliderGO.GetComponent<RectTransform>();
-        sliderRT.sizeDelta = new Vector2(S(120f), S(20f));
-
-        var sliderLE = sliderGO.AddComponent<LayoutElement>();
-        sliderLE.preferredWidth  = 0f;
-        sliderLE.flexibleWidth   = 1f;
-        sliderLE.preferredHeight = S(20f);
-
-        // Background track
-        var bgGO  = MakeGO("Background", sliderGO.transform);
-        var bgRT  = bgGO.GetComponent<RectTransform>();
-        bgRT.anchorMin = new Vector2(0f, 0.5f); bgRT.anchorMax = new Vector2(1f, 0.5f);
-        bgRT.pivot     = new Vector2(0.5f, 0.5f);
-        bgRT.sizeDelta = new Vector2(0f, S(SLIDER_H));
-        var bgImg = bgGO.AddComponent<Image>(); bgImg.color = WHITE25;
-
-        // Fill area
-        var fillArea = MakeGO("Fill Area", sliderGO.transform);
-        var faRT     = fillArea.GetComponent<RectTransform>();
-        faRT.anchorMin = new Vector2(0f, 0.5f); faRT.anchorMax = new Vector2(1f, 0.5f);
-        faRT.pivot     = new Vector2(0.5f, 0.5f);
-        faRT.offsetMin = new Vector2(0f, -S(3f)); faRT.offsetMax = new Vector2(-S(10f), S(3f));
-
-        var fillGO  = MakeGO("Fill", fillArea.transform);
-        var fillRT  = fillGO.GetComponent<RectTransform>();
-        fillRT.anchorMin = Vector2.zero; fillRT.anchorMax = new Vector2(0f, 1f);
-        fillRT.offsetMin = fillRT.offsetMax = Vector2.zero;
-        var fillImg = fillGO.AddComponent<Image>(); fillImg.color = ORANGE;
-
-        // Handle
-        var handleArea = MakeGO("Handle Slide Area", sliderGO.transform);
-        var haRT       = handleArea.GetComponent<RectTransform>();
-        haRT.anchorMin = Vector2.zero; haRT.anchorMax = Vector2.one;
-        haRT.offsetMin = new Vector2(S(10f), 0f); haRT.offsetMax = new Vector2(-S(10f), 0f);
-
-        var handleGO  = MakeGO("Handle", handleArea.transform);
-        var handleRT  = handleGO.GetComponent<RectTransform>();
-        handleRT.anchorMin = handleRT.anchorMax = new Vector2(0f, 0.5f);
-        handleRT.pivot     = new Vector2(0.5f, 0.5f);
-        handleRT.sizeDelta = new Vector2(S(20f), S(20f));
-        var handleImg = handleGO.AddComponent<Image>();
-        handleImg.color = WHITE;
-        Rounded(handleImg);
-
-        // Wire Slider component
-        var slider = sliderGO.AddComponent<Slider>();
-        slider.fillRect   = fillRT;
-        slider.handleRect = handleRT;
-        slider.targetGraphic = handleImg;
-        slider.direction  = Slider.Direction.LeftToRight;
-        slider.minValue   = 0f; slider.maxValue = 1f;
-        slider.value      = defaultValue;
-        var cols = slider.colors;
-        cols.highlightedColor = new Color(1f, 0.80f, 0.30f, 1f);
-        cols.pressedColor     = ORANGE_DRK;
-        slider.colors = cols;
-
-        // High icon
-        var hiIcon = MakeGO("HighIcon", sliderWrap.transform);
-        hiIcon.GetComponent<RectTransform>().sizeDelta = new Vector2(S(16f), S(16f));
-        var hiTMP = hiIcon.AddComponent<TextMeshProUGUI>();
-        hiTMP.text = "🔊"; hiTMP.fontSize = S(13f);
-        hiTMP.alignment = TextAlignmentOptions.Center;
-        hiTMP.color = WHITE65;
-
-        // Make the row taller to fit slider
+        var row = MakeRow(parent, label, "", iconName, tint, false, locKey, null);
         var rowLE = row.GetComponent<LayoutElement>();
-        if (rowLE != null) rowLE.preferredHeight = ROW_H + 22f;
+        if (rowLE != null) rowLE.preferredHeight = S(SLIDER_ROW_H);
 
-        return slider;
+        var body = row.transform.Find("RowBody");
+        if (body != null)
+        {
+            var bodyRT = body.GetComponent<RectTransform>();
+            // Widen the body right edge to leave room for toggle (TOGGLE_W + CTRL_INSET*2)
+            float ctrlAreaW = S(TOGGLE_W) + S(CTRL_INSET) * 2f;
+            bodyRT.offsetMax = new Vector2(-ctrlAreaW, 0f);
+
+            // Label occupies top half of body, bottom-aligned to sit level with icon
+            var lblRT = body.transform.Find("Label")?.GetComponent<RectTransform>();
+            if (lblRT != null)
+            {
+                lblRT.anchorMin = new Vector2(0f, 0.45f);
+                lblRT.anchorMax = Vector2.one;
+                lblRT.offsetMin = lblRT.offsetMax = Vector2.zero;
+                var lblTMP = lblRT.GetComponent<TextMeshProUGUI>();
+                if (lblTMP != null) lblTMP.alignment = TextAlignmentOptions.BottomLeft;
+            }
+
+            // Slider wrap — bottom half of body
+            var sliderWrap = MakeGO("SliderWrap", body.transform);
+            var swRT = sliderWrap.GetComponent<RectTransform>();
+            swRT.anchorMin = new Vector2(0f, 0f);
+            swRT.anchorMax = new Vector2(1f, 0.5f);
+            swRT.offsetMin = Vector2.zero;
+            swRT.offsetMax = Vector2.zero;
+
+            var swHL = sliderWrap.AddComponent<HorizontalLayoutGroup>();
+            swHL.childAlignment         = TextAnchor.MiddleCenter;
+            swHL.spacing                = S(8f);
+            swHL.childControlWidth      = false;
+            swHL.childControlHeight     = false;
+            swHL.childForceExpandWidth  = false;
+            swHL.childForceExpandHeight = false;
+
+            // Low volume icon
+            var loIcon = MakeGO("LowIcon", sliderWrap.transform);
+            loIcon.GetComponent<RectTransform>().sizeDelta = new Vector2(S(18f), S(18f));
+            var loTMP = loIcon.AddComponent<TextMeshProUGUI>();
+            loTMP.text = "🔈"; loTMP.fontSize = S(14f);
+            loTMP.alignment = TextAlignmentOptions.Center;
+            loTMP.color = WHITE40;
+
+            // Slider GO
+            var sliderGO = MakeGO("Slider", sliderWrap.transform);
+            var sliderRT = sliderGO.GetComponent<RectTransform>();
+            sliderRT.sizeDelta = new Vector2(S(120f), S(22f));
+            var sliderLE = sliderGO.AddComponent<LayoutElement>();
+            sliderLE.preferredWidth  = 0f;
+            sliderLE.flexibleWidth   = 1f;
+            sliderLE.preferredHeight = S(22f);
+
+            // Track background
+            var bgGO = MakeGO("Background", sliderGO.transform);
+            var bgRT = bgGO.GetComponent<RectTransform>();
+            bgRT.anchorMin = new Vector2(0f, 0.5f); bgRT.anchorMax = new Vector2(1f, 0.5f);
+            bgRT.pivot = new Vector2(0.5f, 0.5f); bgRT.sizeDelta = new Vector2(0f, S(SLIDER_H));
+            var bgImg = bgGO.AddComponent<Image>(); bgImg.color = WHITE25; Rounded(bgImg);
+
+            // Fill area
+            var fillArea = MakeGO("Fill Area", sliderGO.transform);
+            var faRT = fillArea.GetComponent<RectTransform>();
+            faRT.anchorMin = new Vector2(0f, 0.5f); faRT.anchorMax = new Vector2(1f, 0.5f);
+            faRT.pivot = new Vector2(0.5f, 0.5f);
+            faRT.offsetMin = new Vector2(S(5f), -S(3f)); faRT.offsetMax = new Vector2(-S(5f), S(3f));
+
+            var fillGO = MakeGO("Fill", fillArea.transform);
+            var fillRT = fillGO.GetComponent<RectTransform>();
+            fillRT.anchorMin = Vector2.zero; fillRT.anchorMax = new Vector2(0f, 1f);
+            fillRT.offsetMin = fillRT.offsetMax = Vector2.zero;
+            var fillImg = fillGO.AddComponent<Image>(); fillImg.color = ORANGE; Rounded(fillImg);
+
+            // Handle slide area
+            var handleArea = MakeGO("Handle Slide Area", sliderGO.transform);
+            var haRT = handleArea.GetComponent<RectTransform>();
+            haRT.anchorMin = Vector2.zero; haRT.anchorMax = Vector2.one;
+            haRT.offsetMin = new Vector2(S(11f), 0f); haRT.offsetMax = new Vector2(-S(11f), 0f);
+
+            var handleGO = MakeGO("Handle", handleArea.transform);
+            var handleRT = handleGO.GetComponent<RectTransform>();
+            handleRT.anchorMin = handleRT.anchorMax = new Vector2(0f, 0.5f);
+            handleRT.pivot = new Vector2(0.5f, 0.5f);
+            handleRT.sizeDelta = new Vector2(S(22f), S(22f));
+            var handleImg = handleGO.AddComponent<Image>();
+            handleImg.color = WHITE;
+            Rounded(handleImg);
+
+            // Slider component
+            var slider = sliderGO.AddComponent<Slider>();
+            slider.fillRect      = fillRT;
+            slider.handleRect    = handleRT;
+            slider.targetGraphic = handleImg;
+            slider.direction     = Slider.Direction.LeftToRight;
+            slider.minValue = 0f; slider.maxValue = 1f;
+            slider.value = defaultValue;
+            var cols = slider.colors;
+            cols.highlightedColor = new Color(1f, 0.80f, 0.30f, 1f);
+            cols.pressedColor     = ORANGE_DRK;
+            slider.colors = cols;
+            string prefsKey = iconName == "music" ? "MusicVolume" : "SFXVolume";
+            slider.onValueChanged.AddListener(v => {
+                PlayerPrefs.SetFloat(prefsKey, v);
+                if (AudioManager.Instance != null) AudioManager.Instance.ApplyVolumes();
+            });
+
+            // High volume icon
+            var hiIcon = MakeGO("HighIcon", sliderWrap.transform);
+            hiIcon.GetComponent<RectTransform>().sizeDelta = new Vector2(S(18f), S(18f));
+            var hiTMP = hiIcon.AddComponent<TextMeshProUGUI>();
+            hiTMP.text = "🔊"; hiTMP.fontSize = S(14f);
+            hiTMP.alignment = TextAlignmentOptions.Center;
+            hiTMP.color = WHITE65;
+
+            // Toggle (ON/OFF switch) — right side with CTRL_INSET
+            var toggleGO = MakeGO("Toggle", row.transform);
+            var toggleRT = toggleGO.GetComponent<RectTransform>();
+            toggleRT.anchorMin = new Vector2(1f, 0.5f);
+            toggleRT.anchorMax = new Vector2(1f, 0.5f);
+            toggleRT.pivot     = new Vector2(1f, 0.5f);
+            toggleRT.anchoredPosition = new Vector2(-S(CTRL_INSET), 0f);
+            toggleRT.sizeDelta = new Vector2(S(TOGGLE_W), S(TOGGLE_H));
+
+            var trackGO  = MakeGO("Track", toggleGO.transform);
+            var trackRT2 = trackGO.GetComponent<RectTransform>();
+            trackRT2.anchorMin = Vector2.zero; trackRT2.anchorMax = Vector2.one;
+            trackRT2.offsetMin = trackRT2.offsetMax = Vector2.zero;
+            var trackImg = trackGO.AddComponent<Image>();
+            trackImg.color = ORANGE; Rounded(trackImg);
+
+            float thumbSz = S(TOGGLE_H - 6f);
+            var thumbGO  = MakeGO("Thumb", toggleGO.transform);
+            var thumbRT2 = thumbGO.GetComponent<RectTransform>();
+            thumbRT2.anchorMin = new Vector2(0f, 0.5f);
+            thumbRT2.anchorMax = new Vector2(0f, 0.5f);
+            thumbRT2.pivot     = new Vector2(0.5f, 0.5f);
+            thumbRT2.sizeDelta = new Vector2(thumbSz, thumbSz);
+            thumbRT2.anchoredPosition = new Vector2(S(TOGGLE_W) - thumbSz * 0.5f - S(3f), 0f);
+            var thumbImg2 = thumbGO.AddComponent<Image>();
+            thumbImg2.color = WHITE; Rounded(thumbImg2);
+
+            var toggle = toggleGO.AddComponent<Toggle>();
+            toggle.targetGraphic = trackImg;
+            toggle.graphic       = thumbImg2;
+            toggle.isOn          = true;
+            toggle.onValueChanged.AddListener(on =>
+            {
+                trackImg.color = on ? ORANGE : WHITE25;
+                thumbRT2.anchoredPosition = new Vector2(
+                    on ? (S(TOGGLE_W) - thumbSz * 0.5f - S(3f)) : (thumbSz * 0.5f + S(3f)), 0f);
+                PlayerPrefs.SetInt("Setting_" + iconName + "_on", on ? 1 : 0);
+                if (AudioManager.Instance != null)
+                {
+                    if (iconName == "music" && AudioManager.Instance.musicSource != null)
+                        AudioManager.Instance.musicSource.mute = !on;
+                    else if (iconName == "sfx" && AudioManager.Instance.sfxSource != null)
+                        AudioManager.Instance.sfxSource.mute = !on;
+                }
+            });
+
+            return slider;
+        }
+
+        return null;
     }
 
     // ── Row: Toggle ───────────────────────────────────────────────────────────
 
     Toggle RowToggle(Transform parent, string label, string sub, string iconName,
-                     Color tint, bool defaultOn)
+                     Color tint, bool defaultOn, string locKey = null, string locSubKey = null)
     {
-        var row = MakeRow(parent, label, sub, iconName, tint, false);
+        var row = MakeRow(parent, label, sub, iconName, tint, false, locKey, locSubKey);
 
-        // Toggle container (right side of row)
+        // Toggle container — right-anchored with consistent inset from card edge
         var toggleGO = MakeGO("Toggle", row.transform);
         var toggleRT = toggleGO.GetComponent<RectTransform>();
         toggleRT.anchorMin = new Vector2(1f, 0.5f);
         toggleRT.anchorMax = new Vector2(1f, 0.5f);
         toggleRT.pivot     = new Vector2(1f, 0.5f);
-        toggleRT.anchoredPosition = new Vector2(-S(2f), 0f);
+        toggleRT.anchoredPosition = new Vector2(-S(CTRL_INSET), 0f);
         toggleRT.sizeDelta = new Vector2(S(TOGGLE_W), S(TOGGLE_H));
 
         // Track
@@ -563,9 +734,10 @@ public class SettingsScreenBuilder : MonoBehaviour
     // ── Row: Chips (language / graphics) ─────────────────────────────────────
 
     void RowChips(Transform parent, string label, string sub, string iconName,
-                  Color tint, string[] options, int defaultIndex)
+                  Color tint, string[] options, int defaultIndex,
+                  string locKey = null, string locSubKey = null, string[] locChipKeys = null)
     {
-        var row = MakeRow(parent, label, sub, iconName, tint, false);
+        var row = MakeRow(parent, label, sub, iconName, tint, false, locKey, locSubKey);
 
         // Chips container (right side)
         var chipsGO = MakeGO("Chips", row.transform);
@@ -574,7 +746,7 @@ public class SettingsScreenBuilder : MonoBehaviour
         chipsRT.anchorMin = new Vector2(1f, 0.5f);
         chipsRT.anchorMax = new Vector2(1f, 0.5f);
         chipsRT.pivot     = new Vector2(1f, 0.5f);
-        chipsRT.anchoredPosition = new Vector2(-S(2f), 0f);
+        chipsRT.anchoredPosition = new Vector2(-S(CTRL_INSET), 0f);
         chipsRT.sizeDelta = new Vector2(totalW, S(CHIP_H));
 
         var hl = chipsGO.AddComponent<HorizontalLayoutGroup>();
@@ -611,6 +783,8 @@ public class SettingsScreenBuilder : MonoBehaviour
             lTMP.alignment = TextAlignmentOptions.Center;
             lTMP.raycastTarget = false;
             chipLabels[i] = lTMP;
+            if (locChipKeys != null && i < locChipKeys.Length && locChipKeys[i] != null)
+                Loc(lbl, locChipKeys[i]);
 
             var btn = chipGO.AddComponent<Button>();
             btn.targetGraphic = chipImg;
@@ -622,15 +796,18 @@ public class SettingsScreenBuilder : MonoBehaviour
                     chipLabels[j].color  = (j == idx) ? WHITE     : WHITE40;
                 }
                 PlayerPrefs.SetInt("Setting_" + iconName, idx);
+                if (iconName == "language" && LocalizationManager.Instance != null)
+                    LocalizationManager.Instance.SetLanguageByIndex(idx);
             });
         }
     }
 
     // ── Row: Chevron (leaderboard / navigate) ─────────────────────────────────
 
-    Button RowChevron(Transform parent, string label, string sub, string iconName, Color tint)
+    Button RowChevron(Transform parent, string label, string sub, string iconName, Color tint,
+                       string locKey = null, string locSubKey = null)
     {
-        var row = MakeRow(parent, label, sub, iconName, tint);
+        var row = MakeRow(parent, label, sub, iconName, tint, true, locKey, locSubKey);
 
         // Chevron "›" on the right
         var chevGO  = MakeGO("Chevron", row.transform);
@@ -638,11 +815,11 @@ public class SettingsScreenBuilder : MonoBehaviour
         chevRT.anchorMin = new Vector2(1f, 0.5f);
         chevRT.anchorMax = new Vector2(1f, 0.5f);
         chevRT.pivot     = new Vector2(1f, 0.5f);
-        chevRT.anchoredPosition = new Vector2(-S(4f), 0f);
-        chevRT.sizeDelta = new Vector2(S(20f), S(24f));
+        chevRT.anchoredPosition = new Vector2(-S(CTRL_INSET), 0f);
+        chevRT.sizeDelta = new Vector2(S(24f), S(28f));
         var chevTMP = chevGO.AddComponent<TextMeshProUGUI>();
         chevTMP.text      = "›";
-        chevTMP.fontSize  = S(22f);
+        chevTMP.fontSize  = S(26f);
         chevTMP.color     = WHITE40;
         chevTMP.alignment = TextAlignmentOptions.Center;
         chevTMP.raycastTarget = false;
@@ -654,7 +831,8 @@ public class SettingsScreenBuilder : MonoBehaviour
     // Creates the row background, icon bubble, and label/sub-label.
     // Returns the row GO so callers can add their control widget.
 
-    GameObject MakeRow(Transform parent, string label, string sub, string iconName, Color tint, bool addButton = true)
+    GameObject MakeRow(Transform parent, string label, string sub, string iconName, Color tint,
+                        bool addButton = true, string locLabelKey = null, string locSubKey = null)
     {
         var row   = MakeGO("Row_" + label, parent);
         LE(row, ROW_H);
@@ -676,16 +854,20 @@ public class SettingsScreenBuilder : MonoBehaviour
             rowBtn.transition        = Selectable.Transition.ColorTint;
         }
 
-        // Icon bubble
+        // ── Icon bubble — left-anchored with consistent padding ──
+        float leftPad  = S(16f);                     // padding from card edge to bubble
+        float bubbleW  = S(ICON_BOX);
+        float bodyLeft = leftPad + bubbleW + S(14f); // left edge of text body
+
         var bubble   = MakeGO("IconBubble", row.transform);
         var bubbleRT = bubble.GetComponent<RectTransform>();
         bubbleRT.anchorMin = new Vector2(0f, 0.5f);
         bubbleRT.anchorMax = new Vector2(0f, 0.5f);
         bubbleRT.pivot     = new Vector2(0f, 0.5f);
-        bubbleRT.anchoredPosition = new Vector2(S(14f), 0f);
-        bubbleRT.sizeDelta = new Vector2(S(ICON_BOX), S(ICON_BOX));
+        bubbleRT.anchoredPosition = new Vector2(leftPad, 0f);
+        bubbleRT.sizeDelta = new Vector2(bubbleW, bubbleW);
         var bubbleImg = bubble.AddComponent<Image>();
-        bubbleImg.color = new Color(tint.r, tint.g, tint.b, 0.28f);
+        bubbleImg.color = new Color(1f, 1f, 1f, 0.12f);
         Rounded(bubbleImg);
         bubbleImg.raycastTarget = false;
 
@@ -701,32 +883,36 @@ public class SettingsScreenBuilder : MonoBehaviour
         var sp = Icon(iconName);
         if (sp != null) iconImg.sprite = sp;
 
-        // Row body (label + optional sub)
+        // ── Row body — text area between bubble and control widget ──
+        // Right offset leaves room for the control: toggle (TOGGLE_W) + CTRL_INSET on each side
+        float ctrlAreaW = S(TOGGLE_W) + S(CTRL_INSET) * 2f;
+
         var body   = MakeGO("RowBody", row.transform);
         var bodyRT = body.GetComponent<RectTransform>();
         bodyRT.anchorMin = new Vector2(0f, 0f);
         bodyRT.anchorMax = new Vector2(1f, 1f);
-        // Left offset: pad + bubble + gap; right: leave room for control (70 px)
-        bodyRT.offsetMin = new Vector2(S(14f + ICON_BOX + 12f), 0f);
-        bodyRT.offsetMax = new Vector2(-S(74f), 0f);
+        bodyRT.offsetMin = new Vector2(bodyLeft, 0f);
+        bodyRT.offsetMax = new Vector2(-ctrlAreaW, 0f);
 
         // Main label
         var lblGO  = MakeGO("Label", body.transform);
         var lblRT  = lblGO.GetComponent<RectTransform>();
-        lblRT.anchorMin = new Vector2(0f, string.IsNullOrEmpty(sub) ? 0f : 0.5f);
+        bool hasSub = !string.IsNullOrEmpty(sub);
+        lblRT.anchorMin = new Vector2(0f, hasSub ? 0.5f : 0f);
         lblRT.anchorMax = Vector2.one;
         lblRT.offsetMin = lblRT.offsetMax = Vector2.zero;
         var lblTMP = lblGO.AddComponent<TextMeshProUGUI>();
         lblTMP.text      = label;
-        lblTMP.fontSize  = S(16f);
+        lblTMP.fontSize  = S(17f);
         lblTMP.fontStyle = FontStyles.Bold;
         lblTMP.color     = WHITE;
-        lblTMP.alignment = TextAlignmentOptions.Left;
+        lblTMP.alignment = hasSub ? TextAlignmentOptions.BottomLeft : TextAlignmentOptions.Left;
         lblTMP.overflowMode = TextOverflowModes.Ellipsis;
         lblTMP.raycastTarget = false;
+        if (locLabelKey != null) Loc(lblGO, locLabelKey);
 
         // Sub-label
-        if (!string.IsNullOrEmpty(sub))
+        if (hasSub)
         {
             var subGO  = MakeGO("Sub", body.transform);
             var subRT  = subGO.GetComponent<RectTransform>();
@@ -735,11 +921,12 @@ public class SettingsScreenBuilder : MonoBehaviour
             subRT.offsetMin = subRT.offsetMax = Vector2.zero;
             var subTMP = subGO.AddComponent<TextMeshProUGUI>();
             subTMP.text      = sub;
-            subTMP.fontSize  = S(12f);
+            subTMP.fontSize  = S(13f);
             subTMP.color     = WHITE40;
-            subTMP.alignment = TextAlignmentOptions.Left;
+            subTMP.alignment = TextAlignmentOptions.TopLeft;
             subTMP.overflowMode = TextOverflowModes.Ellipsis;
             subTMP.raycastTarget = false;
+            if (locSubKey != null) Loc(subGO, locSubKey);
         }
 
         return row;
@@ -755,9 +942,11 @@ public class SettingsScreenBuilder : MonoBehaviour
         var img = go.AddComponent<Image>();
         img.color = RED_FILL; Rounded(img);
 
-        // Red border overlay
+        // Red border overlay (inset 1px to simulate CSS border)
         var border = MakeGO("Border", go.transform);
-        Stretch(border);
+        var borderRT = border.GetComponent<RectTransform>();
+        borderRT.anchorMin = Vector2.zero; borderRT.anchorMax = Vector2.one;
+        borderRT.offsetMin = new Vector2(1f, 1f); borderRT.offsetMax = new Vector2(-1f, -1f);
         var bImg = border.AddComponent<Image>();
         bImg.color = RED_BORDER; Rounded(bImg);
         bImg.raycastTarget = false;
@@ -766,17 +955,19 @@ public class SettingsScreenBuilder : MonoBehaviour
         StretchFill(lbl);
         var lTMP = lbl.AddComponent<TextMeshProUGUI>();
         lTMP.text      = "🗑   Reset Progress";
-        lTMP.fontSize  = S(16f);
+        lTMP.fontSize  = S(18f);
         lTMP.fontStyle = FontStyles.Bold;
         lTMP.color     = RED_TEXT;
         lTMP.alignment = TextAlignmentOptions.Center;
         lTMP.raycastTarget = false;
+        Loc(lbl, "ui.settings.reset_progress");
 
         var btn = go.AddComponent<Button>();
         btn.targetGraphic = img;
         var cols = btn.colors;
-        cols.highlightedColor = new Color(0.94f, 0.27f, 0.27f, 0.22f);
-        cols.pressedColor     = new Color(0.94f, 0.27f, 0.27f, 0.06f);
+        cols.normalColor      = Color.white;
+        cols.highlightedColor = new Color(1.1f, 0.94f, 0.94f, 1f);
+        cols.pressedColor     = new Color(0.85f, 0.85f, 0.85f, 1f);
         btn.colors = cols;
 
         return btn;
@@ -842,6 +1033,13 @@ public class SettingsScreenBuilder : MonoBehaviour
 
     // ── UI utility ────────────────────────────────────────────────────────────
 
+    /// <summary>Attach a LocalizedText component to a GO that already has TextMeshProUGUI.</summary>
+    static void Loc(GameObject go, string key)
+    {
+        var lt = go.AddComponent<LocalizedText>();
+        lt.locKey = key;
+    }
+
     static GameObject MakeGO(string name, Transform parent)
     {
         var go = new GameObject(name);
@@ -882,7 +1080,7 @@ public class SettingsScreenBuilder : MonoBehaviour
     {
         if (_roundedSprite == null)
         {
-            const int sz = 128, r = 24, b = 8;
+            const int sz = 128, r = 32, b = 32;
             var tex = new Texture2D(sz, sz, TextureFormat.RGBA32, false);
             var px  = new Color32[sz * sz];
             for (int y = 0; y < sz; y++)

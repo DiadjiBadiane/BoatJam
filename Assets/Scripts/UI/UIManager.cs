@@ -119,7 +119,7 @@ public class UIManager : MonoBehaviour
         HideOverlays();
         movesCount = 0;
         undoStack.Clear();
-        Refresh(hudLevelText, $"LVL {levelNumber}");
+        Refresh(hudLevelText, LocalizationManager.T("ui.gameplay.lvl_prefix") + " " + levelNumber);
         Refresh(hudMovesText, "0");
         Time.timeScale = 1f;
     }
@@ -348,7 +348,7 @@ public class UIManager : MonoBehaviour
         var lcRT    = lvlCard.GetComponent<RectTransform>();
         lcRT.anchorMin = new Vector2(0f, 0f); lcRT.anchorMax = new Vector2(0.30f, 1f);
         lcRT.offsetMin = lcRT.offsetMax = Vector2.zero;
-        hudLevelText = MakeTMP("LvlTxt", lvlCard.transform, "LVL 1", 32f,
+        hudLevelText = MakeTMP("LvlTxt", lvlCard.transform, LocalizationManager.T("ui.gameplay.lvl_prefix") + " 1", 32f,
             FontStyles.Bold, Color.white, TextAlignmentOptions.Center);
         StretchRT(hudLevelText.rectTransform);
 
@@ -357,12 +357,13 @@ public class UIManager : MonoBehaviour
         mcRT.anchorMin = new Vector2(0.35f, 0f); mcRT.anchorMax = new Vector2(0.73f, 1f);
         mcRT.offsetMin = mcRT.offsetMax = Vector2.zero;
 
-        var movLbl = MakeTMP("MovLbl", movCard.transform, "MOVES", 14f,
+        var movLbl = MakeTMP("MovLbl", movCard.transform, LocalizationManager.T("ui.gameplay.moves"), 14f,
             FontStyles.Bold, new Color(1f, 1f, 1f, 0.6f), TextAlignmentOptions.Center);
         movLbl.rectTransform.anchorMin = new Vector2(0f, 0.55f);
         movLbl.rectTransform.anchorMax = new Vector2(1f, 1f);
         movLbl.rectTransform.offsetMin = movLbl.rectTransform.offsetMax = Vector2.zero;
         movLbl.characterSpacing = 2f;
+        Loc(movLbl.gameObject, "ui.gameplay.moves");
 
         hudMovesText = MakeTMP("MovNum", movCard.transform, "0", 38f,
             FontStyles.Bold, Color.white, TextAlignmentOptions.Center);
@@ -375,7 +376,7 @@ public class UIManager : MonoBehaviour
         hcRT.anchorMin = new Vector2(0.77f, 0f); hcRT.anchorMax = new Vector2(1f, 1f);
         hcRT.offsetMin = hcRT.offsetMax = Vector2.zero;
         hintCard.AddComponent<Button>().targetGraphic = hintCard.GetComponent<Image>();
-        MakeTMP("HintLbl", hintCard.transform, "HINT", 18f,
+        MakeTMP("HintLbl", hintCard.transform, LocalizationManager.T("ui.gameplay.hint"), 18f,
             FontStyles.Bold, Color.white, TextAlignmentOptions.Center);
     }
 
@@ -396,11 +397,11 @@ public class UIManager : MonoBehaviour
         hl.childControlWidth     = true;  hl.childControlHeight     = true;
         hl.childForceExpandWidth = true;  hl.childForceExpandHeight = true;
 
-        var pauseGO = MakeBtn("PauseBtn", bar.transform, "PAUSE", GLASS_BRD, 18f);
+        var pauseGO = MakeBtn("PauseBtn", bar.transform, LocalizationManager.T("ui.gameplay.pause"), GLASS_BRD, 18f);
         pauseGO.AddComponent<LayoutElement>().flexibleWidth = 1f;
         pauseGO.GetComponent<Button>().onClick.AddListener(TogglePause);
 
-        var undoGO = MakeBtn("UndoBtn", bar.transform, "UNDO", ORANGE, 22f);
+        var undoGO = MakeBtn("UndoBtn", bar.transform, LocalizationManager.T("ui.gameplay.undo"), ORANGE, 22f);
         undoGO.AddComponent<LayoutElement>().flexibleWidth = 2f;
         var slab = NewGO("Slab", undoGO.transform);
         var sRT  = slab.GetComponent<RectTransform>();
@@ -410,7 +411,7 @@ public class UIManager : MonoBehaviour
         var sImg = slab.AddComponent<Image>(); sImg.color = ORANGE_DK; Round(sImg); sImg.raycastTarget = false;
         undoGO.GetComponent<Button>().onClick.AddListener(UndoMove);
 
-        var homeGO = MakeBtn("HomeBtn", bar.transform, "HOME", GLASS_BRD, 18f);
+        var homeGO = MakeBtn("HomeBtn", bar.transform, LocalizationManager.T("ui.buttons.home"), GLASS_BRD, 18f);
         homeGO.AddComponent<LayoutElement>().flexibleWidth = 1f;
         homeGO.GetComponent<Button>().onClick.AddListener(GoHome);
     }
@@ -441,8 +442,9 @@ public class UIManager : MonoBehaviour
         // Title
         var titleGO = NewLayoutGO("WinTitle", card.transform, 40f);
         var t = titleGO.AddComponent<TextMeshProUGUI>();
-        t.text = "LEVEL CLEAR!"; t.fontSize = 26f; t.fontStyle = FontStyles.Bold;
+        t.text = LocalizationManager.T("ui.gameplay.level_clear"); t.fontSize = 26f; t.fontStyle = FontStyles.Bold;
         t.color = ORANGE; t.alignment = TextAlignmentOptions.Center;
+        Loc(titleGO, "ui.gameplay.level_clear");
 
         // Stars row
         var starsRow = NewLayoutGO("WinStars", card.transform, 44f);
@@ -466,7 +468,7 @@ public class UIManager : MonoBehaviour
         rHL.childForceExpandWidth = true; rHL.childForceExpandHeight = true;
 
         // REPLAY button — named exactly "ReplayBtn"
-        var replayGO = MakeBtn("ReplayBtn", row.transform, "REPLAY", GLASS_BRD, 16f);
+        var replayGO = MakeBtn("ReplayBtn", row.transform, LocalizationManager.T("ui.buttons.replay"), GLASS_BRD, 16f);
         replayGO.AddComponent<LayoutElement>().flexibleWidth = 1f;
         replayGO.GetComponent<Button>().onClick.AddListener(RestartLevel);
 
@@ -511,12 +513,13 @@ public class UIManager : MonoBehaviour
 
         var titleGO = NewLayoutGO("Title", card.transform, 42f);
         var t = titleGO.AddComponent<TextMeshProUGUI>();
-        t.text = "PAUSED"; t.fontSize = 26f; t.fontStyle = FontStyles.Bold;
+        t.text = LocalizationManager.T("ui.gameplay.paused"); t.fontSize = 26f; t.fontStyle = FontStyles.Bold;
         t.color = Color.white; t.alignment = TextAlignmentOptions.Center;
+        Loc(titleGO, "ui.gameplay.paused");
 
-        PauseCardBtn(card.transform, "ResumeBtn",  "RESUME",  true,  ResumeGame);
-        PauseCardBtn(card.transform, "RestartBtn", "RESTART", false, RestartLevel);
-        PauseCardBtn(card.transform, "HomeBtn2",   "HOME",    false, GoHome);
+        PauseCardBtn(card.transform, "ResumeBtn",  LocalizationManager.T("ui.buttons.resume"),  true,  ResumeGame);
+        PauseCardBtn(card.transform, "RestartBtn", LocalizationManager.T("ui.buttons.restart"), false, RestartLevel);
+        PauseCardBtn(card.transform, "HomeBtn2",   LocalizationManager.T("ui.buttons.home"),    false, GoHome);
 
         return panel;
     }
@@ -627,6 +630,12 @@ public class UIManager : MonoBehaviour
     }
 
     static Color Hex(string h) { ColorUtility.TryParseHtmlString("#" + h, out Color c); return c; }
+
+    static void Loc(GameObject go, string key)
+    {
+        var lt = go.AddComponent<LocalizedText>();
+        lt.SetKey(key);
+    }
 }
 
 // Extension to help with debug logging of hierarchy paths

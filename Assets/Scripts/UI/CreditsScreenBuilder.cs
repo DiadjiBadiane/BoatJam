@@ -85,6 +85,10 @@ public class CreditsScreenBuilder : MonoBehaviour
     // ── Public reference for MainMenuManager ──────────────────────────────────
     [HideInInspector] public Button backButton;
 
+    float _uiScale = 1f;
+    float S(float v) => v * _uiScale;
+    int SI(float v) => Mathf.RoundToInt(S(v));
+
     // ─────────────────────────────────────────────────────────────────────────
 
 
@@ -129,6 +133,8 @@ public class CreditsScreenBuilder : MonoBehaviour
     [ContextMenu("Build Credits Screen")]
     public void Build()
     {
+        _uiScale = Screen.width > Screen.height ? 1.45f : 1f;
+
         var old = transform.Find("CreditsPanel");
         if (old != null)
         {
@@ -168,12 +174,12 @@ public class CreditsScreenBuilder : MonoBehaviour
         var g  = MakeGO("Glint", bg.transform);
         var gr = g.GetComponent<RectTransform>();
         gr.anchorMin = new Vector2(0.5f, 0.22f); gr.anchorMax = new Vector2(0.5f, 0.22f);
-        gr.pivot     = new Vector2(0.5f, 0.5f);  gr.sizeDelta = new Vector2(180f, 6f);
+        gr.pivot     = new Vector2(0.5f, 0.5f);  gr.sizeDelta = new Vector2(S(180f), S(6f));
         var gi = g.AddComponent<Image>(); gi.color = GLINT_CLR; Rounded(gi);
         g.AddComponent<GlintPulse>();
 
-        MakeDecoBoat(bg.transform, "Deco1", "⛵", 22f, new Vector2(0.07f, 0.12f), 4f,  0f);
-        MakeDecoBoat(bg.transform, "Deco2", "🚤", 17f, new Vector2(0.88f, 0.09f), 5f, -2f);
+        MakeDecoBoat(bg.transform, "Deco1", "⛵", S(22f), new Vector2(0.07f, 0.12f), 4f,  0f);
+        MakeDecoBoat(bg.transform, "Deco2", "🚤", S(17f), new Vector2(0.88f, 0.09f), 5f, -2f);
     }
 
     // ── Scroll content ────────────────────────────────────────────────────────
@@ -213,8 +219,8 @@ public class CreditsScreenBuilder : MonoBehaviour
         vl.childAlignment        = TextAnchor.UpperCenter;
         vl.spacing               = 0f;
         vl.padding               = new RectOffset(
-            Mathf.RoundToInt(SIDE_PAD), Mathf.RoundToInt(SIDE_PAD),
-            Mathf.RoundToInt(TOP_PAD),  Mathf.RoundToInt(BTM_PAD));
+            SI(SIDE_PAD), SI(SIDE_PAD),
+            SI(TOP_PAD),  SI(BTM_PAD));
         vl.childControlWidth      = true;
         vl.childControlHeight     = true;
         vl.childForceExpandWidth  = true;
@@ -227,39 +233,39 @@ public class CreditsScreenBuilder : MonoBehaviour
         BuildHero(content.transform);
 
         // ── Team ──────────────────────────────────────────────────────────────
-        SectionLabel(content.transform, "👥   TEAM");
+        SectionLabel(content.transform, LocalizationManager.T("ui.credits.section_team"));
         var teamCard = Card(content.transform);
-        CreditRow(teamCard.transform, "🧑‍💻", AVT_ORANGE, "Your Name",     "Game Design & Development", "LEAD", BADGE_ORANGE_BG, BADGE_ORANGE_BRD, BADGE_ORANGE_TXT, true);
+        CreditRow(teamCard.transform, "🧑‍💻", AVT_ORANGE, "Your Name",     LocalizationManager.T("ui.credits.role_lead"),  "LEAD", BADGE_ORANGE_BG, BADGE_ORANGE_BRD, BADGE_ORANGE_TXT, true);
         Divider(teamCard.transform);
-        CreditRow(teamCard.transform, "🎨",   AVT_BLUE,   "Artist Name",   "UI & Visual Design",        "ART",  BADGE_BLUE_BG,   BADGE_BLUE_BRD,   BADGE_BLUE_TXT,   false);
+        CreditRow(teamCard.transform, "🎨",   AVT_BLUE,   "Artist Name",   LocalizationManager.T("ui.credits.role_art"),   "ART",  BADGE_BLUE_BG,   BADGE_BLUE_BRD,   BADGE_BLUE_TXT,   false);
         Divider(teamCard.transform);
-        CreditRow(teamCard.transform, "🎵",   AVT_TEAL,   "Composer Name", "Music & Sound Effects",     "AUDIO",BADGE_TEAL_BG,   BADGE_TEAL_BRD,   BADGE_TEAL_TXT,   false);
+        CreditRow(teamCard.transform, "🎵",   AVT_TEAL,   "Composer Name", LocalizationManager.T("ui.credits.role_audio"), "AUDIO",BADGE_TEAL_BG,   BADGE_TEAL_BRD,   BADGE_TEAL_TXT,   false);
         Divider(teamCard.transform);
-        CreditRow(teamCard.transform, "🧪",   AVT_PINK,   "Tester Name",   "QA & Playtesting",          "QA",   BADGE_PINK_BG,   BADGE_PINK_BRD,   BADGE_PINK_TXT,   false);
+        CreditRow(teamCard.transform, "🧪",   AVT_PINK,   "Tester Name",   LocalizationManager.T("ui.credits.role_qa"),    "QA",   BADGE_PINK_BG,   BADGE_PINK_BRD,   BADGE_PINK_TXT,   false);
 
         // ── Tools & Assets ────────────────────────────────────────────────────
-        SectionLabel(content.transform, "🛠   TOOLS & ASSETS");
+        SectionLabel(content.transform, LocalizationManager.T("ui.credits.section_tools"));
         var toolCard = Card(content.transform);
-        ToolRow(toolCard.transform, "🎮", "Unity 6",            "Game engine",                    true);
+        ToolRow(toolCard.transform, "🎮", "Unity 6",            LocalizationManager.T("ui.credits.tool_engine_desc"),    true);
         Divider(toolCard.transform);
-        ToolRow(toolCard.transform, "⚓", "25 Boats And Ships",  "3D boat asset pack",             false);
+        ToolRow(toolCard.transform, "⚓", "25 Boats And Ships",  LocalizationManager.T("ui.credits.tool_boats_desc"),     false);
         Divider(toolCard.transform);
-        ToolRow(toolCard.transform, "✍️", "TextMesh Pro",        "UI typography",                  false);
+        ToolRow(toolCard.transform, "✍️", "TextMesh Pro",        LocalizationManager.T("ui.credits.tool_tmp_desc"),       false);
         Divider(toolCard.transform);
-        ToolRow(toolCard.transform, "🔊", "Freesound.org",       "Sound effects library",          false);
+        ToolRow(toolCard.transform, "🔊", "Freesound.org",       LocalizationManager.T("ui.credits.tool_freesound_desc"), false);
         Divider(toolCard.transform);
-        ToolRow(toolCard.transform, "🎨", "Google Fonts",        "Righteous & Nunito typefaces",   false);
+        ToolRow(toolCard.transform, "🎨", "Google Fonts",        LocalizationManager.T("ui.credits.tool_fonts_desc"),     false);
 
         // ── Special Thanks ────────────────────────────────────────────────────
-        SectionLabel(content.transform, "✨   SPECIAL THANKS");
+        SectionLabel(content.transform, LocalizationManager.T("ui.credits.section_thanks"));
         BuildThanksCard(content.transform);
 
         // ── Socials ───────────────────────────────────────────────────────────
-        SectionLabel(content.transform, "🌐   FIND US");
+        SectionLabel(content.transform, LocalizationManager.T("ui.credits.section_socials"));
         BuildSocials(content.transform);
 
         // ── Footer ────────────────────────────────────────────────────────────
-        Gap(content.transform, 24f);
+        Gap(content.transform, S(24f));
         BuildFooter(content.transform);
     }
 
@@ -268,10 +274,10 @@ public class CreditsScreenBuilder : MonoBehaviour
     void BuildHeader(Transform parent)
     {
         var hdr = MakeGO("Header", parent);
-        LE(hdr, HDR_H);
+        LE(hdr, S(HDR_H));
         var hl = hdr.AddComponent<HorizontalLayoutGroup>();
         hl.childAlignment        = TextAnchor.MiddleCenter;
-        hl.childControlWidth     = false;
+        hl.childControlWidth     = true;
         hl.childControlHeight    = true;
         hl.childForceExpandWidth  = false;
         hl.childForceExpandHeight = true;
@@ -280,7 +286,7 @@ public class CreditsScreenBuilder : MonoBehaviour
         // Back button
         var backGO  = MakeGO("BackButton", hdr.transform);
         var backLE  = backGO.AddComponent<LayoutElement>();
-        backLE.preferredWidth = 48f; backLE.flexibleWidth = 0f;
+        backLE.preferredWidth = S(48f); backLE.flexibleWidth = 0f;
         var backImg = backGO.AddComponent<Image>(); backImg.color = WHITE12; Rounded(backImg);
         backButton = backGO.AddComponent<Button>();
         TintBtn(backButton, WHITE25, WHITE06);
@@ -292,7 +298,7 @@ public class CreditsScreenBuilder : MonoBehaviour
             var iconGO  = MakeGO("Icon", backGO.transform);
             var iconRT  = iconGO.GetComponent<RectTransform>();
             iconRT.anchorMin = iconRT.anchorMax = new Vector2(0.5f, 0.5f);
-            iconRT.pivot = new Vector2(0.5f, 0.5f); iconRT.sizeDelta = new Vector2(22f, 22f);
+            iconRT.pivot = new Vector2(0.5f, 0.5f); iconRT.sizeDelta = new Vector2(S(22f), S(22f));
             var iconImg = iconGO.AddComponent<Image>();
             iconImg.sprite = backSp; iconImg.color = WHITE; iconImg.preserveAspect = true;
             iconImg.raycastTarget = false;
@@ -301,7 +307,7 @@ public class CreditsScreenBuilder : MonoBehaviour
         {
             var bTxt = MakeGO("Label", backGO.transform); StretchFill(bTxt);
             var bTMP = bTxt.AddComponent<TextMeshProUGUI>();
-            bTMP.text = "‹"; bTMP.fontSize = 32f; bTMP.color = WHITE;
+            bTMP.text = "‹"; bTMP.fontSize = S(32f); bTMP.color = WHITE;
             bTMP.alignment = TextAlignmentOptions.Center; bTMP.raycastTarget = false;
         }
 
@@ -309,11 +315,12 @@ public class CreditsScreenBuilder : MonoBehaviour
         var titleGO  = MakeGO("Title", hdr.transform);
         var titleLE  = titleGO.AddComponent<LayoutElement>(); titleLE.flexibleWidth = 1f;
         var titleTMP = titleGO.AddComponent<TextMeshProUGUI>();
-        titleTMP.text         = "CREDITS";
-        titleTMP.fontSize     = 26f;
+        titleTMP.text         = LocalizationManager.T("ui.credits.title");
+        titleTMP.fontSize     = S(26f);
         titleTMP.fontStyle    = FontStyles.Bold;
         titleTMP.color        = WHITE;
         titleTMP.alignment    = TextAlignmentOptions.Center;
+        Loc(titleGO, "ui.credits.title");
         if (titleTMP.font == null && TMP_Settings.defaultFontAsset != null)
             titleTMP.font = TMP_Settings.defaultFontAsset;
         SafeSetOutline(titleTMP, 0.2f, new Color32(3, 105, 161, 255));
@@ -321,37 +328,37 @@ public class CreditsScreenBuilder : MonoBehaviour
         // Ghost spacer (keeps title centred)
         var ghost   = MakeGO("Ghost", hdr.transform);
         var ghostLE = ghost.AddComponent<LayoutElement>();
-        ghostLE.preferredWidth = 48f; ghostLE.flexibleWidth = 0f;
+        ghostLE.preferredWidth = S(48f); ghostLE.flexibleWidth = 0f;
     }
 
     // ── Hero (boat + title + tagline) ─────────────────────────────────────────
 
     void BuildHero(Transform parent)
     {
-        Gap(parent, 8f);
+        Gap(parent, S(8f));
         var hero = MakeGO("Hero", parent);
-        LE(hero, 130f);
+        LE(hero, S(130f));
 
         var vl = hero.AddComponent<VerticalLayoutGroup>();
         vl.childAlignment        = TextAnchor.MiddleCenter;
-        vl.spacing               = 4f;
+        vl.spacing               = S(4f);
         vl.childControlWidth     = true;
         vl.childControlHeight    = false;
         vl.childForceExpandWidth = true;
         vl.childForceExpandHeight = false;
 
         // Boat icon
-        var boatGO  = MakeGO("Boat", hero.transform); LE(boatGO, 68f);
+        var boatGO  = MakeGO("Boat", hero.transform); LE(boatGO, S(68f));
         var boatTMP = boatGO.AddComponent<TextMeshProUGUI>();
-        boatTMP.text = "⛵"; boatTMP.fontSize = 56f;
+        boatTMP.text = "⛵"; boatTMP.fontSize = S(56f);
         boatTMP.alignment = TextAlignmentOptions.Center; boatTMP.color = WHITE;
-        var bob = boatGO.AddComponent<Bobber>(); bob.amplitude = 7f; bob.tiltDeg = 3f; bob.duration = 3f;
+        var bob = boatGO.AddComponent<Bobber>(); bob.amplitude = S(7f); bob.tiltDeg = 3f; bob.duration = 3f;
 
         // Game name
-        var nameGO  = MakeGO("GameName", hero.transform); LE(nameGO, 36f);
+        var nameGO  = MakeGO("GameName", hero.transform); LE(nameGO, S(36f));
         var nameTMP = nameGO.AddComponent<TextMeshProUGUI>();
         nameTMP.text         = "BOAT JAM";
-        nameTMP.fontSize     = 32f;
+        nameTMP.fontSize     = S(32f);
         nameTMP.fontStyle    = FontStyles.Bold;
         nameTMP.color        = WHITE;
         nameTMP.alignment    = TextAlignmentOptions.Center;
@@ -360,10 +367,10 @@ public class CreditsScreenBuilder : MonoBehaviour
         SafeSetOutline(nameTMP, 0.22f, new Color32(3, 105, 161, 255));
 
         // Tagline
-        var tagGO  = MakeGO("Tagline", hero.transform); LE(tagGO, 20f);
+        var tagGO  = MakeGO("Tagline", hero.transform); LE(tagGO, S(20f));
         var tagTMP = tagGO.AddComponent<TextMeshProUGUI>();
         tagTMP.text            = "HARBOR ESCAPE";
-        tagTMP.fontSize        = 12f;
+        tagTMP.fontSize        = S(12f);
         tagTMP.fontStyle       = FontStyles.Bold;
         tagTMP.color           = WHITE65;
         tagTMP.alignment       = TextAlignmentOptions.Center;
@@ -374,12 +381,12 @@ public class CreditsScreenBuilder : MonoBehaviour
 
     void SectionLabel(Transform parent, string text)
     {
-        Gap(parent, SEC_GAP);
+        Gap(parent, S(SEC_GAP));
         var go  = MakeGO("Section_" + text, parent);
-        LE(go, SEC_LBL_H);
+        LE(go, S(SEC_LBL_H));
         var tmp = go.AddComponent<TextMeshProUGUI>();
         tmp.text            = text;
-        tmp.fontSize        = 11f;
+        tmp.fontSize        = S(11f);
         tmp.fontStyle       = FontStyles.Bold;
         tmp.color           = WHITE40;
         tmp.alignment       = TextAlignmentOptions.Left;
@@ -390,7 +397,7 @@ public class CreditsScreenBuilder : MonoBehaviour
 
     GameObject Card(Transform parent)
     {
-        Gap(parent, 6f);
+        Gap(parent, S(6f));
         var go  = MakeGO("Card", parent);
         var le  = go.AddComponent<LayoutElement>();
         le.flexibleHeight = 0f;
@@ -432,7 +439,7 @@ public class CreditsScreenBuilder : MonoBehaviour
                    bool isFirst)
     {
         var row   = MakeGO("CreditRow_" + name, parent);
-        LE(row, ROW_H);
+        LE(row, S(ROW_H));
 
         // Subtle press feedback
         var rowImg = row.AddComponent<Image>(); rowImg.color = Color.clear;
@@ -447,8 +454,8 @@ public class CreditsScreenBuilder : MonoBehaviour
         var avaRT = ava.GetComponent<RectTransform>();
         avaRT.anchorMin = new Vector2(0f, 0.5f); avaRT.anchorMax = new Vector2(0f, 0.5f);
         avaRT.pivot     = new Vector2(0f, 0.5f);
-        avaRT.anchoredPosition = new Vector2(14f, 0f);
-        avaRT.sizeDelta = new Vector2(42f, 42f);
+        avaRT.anchoredPosition = new Vector2(S(14f), 0f);
+        avaRT.sizeDelta = new Vector2(S(42f), S(42f));
         var avaImg = ava.AddComponent<Image>();
         avaImg.color = avatarTint;
         // Make it a circle via a round sprite
@@ -465,7 +472,7 @@ public class CreditsScreenBuilder : MonoBehaviour
         // Emoji inside avatar
         var emoGO  = MakeGO("Emoji", ava.transform); StretchFill(emoGO);
         var emoTMP = emoGO.AddComponent<TextMeshProUGUI>();
-        emoTMP.text = emoji; emoTMP.fontSize = 20f;
+        emoTMP.text = emoji; emoTMP.fontSize = S(20f);
         emoTMP.alignment = TextAlignmentOptions.Center;
         emoTMP.raycastTarget = false;
 
@@ -473,15 +480,15 @@ public class CreditsScreenBuilder : MonoBehaviour
         var body   = MakeGO("Body", row.transform);
         var bodyRT = body.GetComponent<RectTransform>();
         bodyRT.anchorMin = new Vector2(0f, 0f); bodyRT.anchorMax = new Vector2(1f, 1f);
-        bodyRT.offsetMin = new Vector2(14f + 42f + 12f, 0f);
-        bodyRT.offsetMax = new Vector2(-80f, 0f);
+        bodyRT.offsetMin = new Vector2(S(68f), 0f);
+        bodyRT.offsetMax = new Vector2(-S(80f), 0f);
 
         var nameGO  = MakeGO("Name", body.transform);
         var nameRT  = nameGO.GetComponent<RectTransform>();
         nameRT.anchorMin = new Vector2(0f, 0.5f); nameRT.anchorMax = Vector2.one;
         nameRT.offsetMin = nameRT.offsetMax = Vector2.zero;
         var nameTMP = nameGO.AddComponent<TextMeshProUGUI>();
-        nameTMP.text = name; nameTMP.fontSize = 15f; nameTMP.fontStyle = FontStyles.Bold;
+        nameTMP.text = name; nameTMP.fontSize = S(15f); nameTMP.fontStyle = FontStyles.Bold;
         nameTMP.color = WHITE; nameTMP.alignment = TextAlignmentOptions.Left;
         nameTMP.raycastTarget = false;
 
@@ -490,7 +497,7 @@ public class CreditsScreenBuilder : MonoBehaviour
         roleRT.anchorMin = Vector2.zero; roleRT.anchorMax = new Vector2(1f, 0.5f);
         roleRT.offsetMin = roleRT.offsetMax = Vector2.zero;
         var roleTMP = roleGO.AddComponent<TextMeshProUGUI>();
-        roleTMP.text = role; roleTMP.fontSize = 11f;
+        roleTMP.text = role; roleTMP.fontSize = S(11f);
         roleTMP.color = WHITE40; roleTMP.alignment = TextAlignmentOptions.Left;
         roleTMP.raycastTarget = false;
 
@@ -499,8 +506,8 @@ public class CreditsScreenBuilder : MonoBehaviour
         var badgeRT = badge.GetComponent<RectTransform>();
         badgeRT.anchorMin = new Vector2(1f, 0.5f); badgeRT.anchorMax = new Vector2(1f, 0.5f);
         badgeRT.pivot     = new Vector2(1f, 0.5f);
-        badgeRT.anchoredPosition = new Vector2(-14f, 0f);
-        badgeRT.sizeDelta = new Vector2(52f, 24f);
+        badgeRT.anchoredPosition = new Vector2(-S(14f), 0f);
+        badgeRT.sizeDelta = new Vector2(S(52f), S(24f));
         var badgeImg = badge.AddComponent<Image>(); badgeImg.color = badgeBg; Rounded(badgeImg);
 
         // Badge border
@@ -511,7 +518,7 @@ public class CreditsScreenBuilder : MonoBehaviour
         // Badge text
         var badgeLbl = MakeGO("Label", badge.transform); StretchFill(badgeLbl);
         var badgeTMP = badgeLbl.AddComponent<TextMeshProUGUI>();
-        badgeTMP.text = badgeText; badgeTMP.fontSize = 10f; badgeTMP.fontStyle = FontStyles.Bold;
+        badgeTMP.text = badgeText; badgeTMP.fontSize = S(10f); badgeTMP.fontStyle = FontStyles.Bold;
         badgeTMP.color = badgeTxt; badgeTMP.alignment = TextAlignmentOptions.Center;
         badgeTMP.characterSpacing = 1f; badgeTMP.raycastTarget = false;
     }
@@ -521,7 +528,7 @@ public class CreditsScreenBuilder : MonoBehaviour
     void ToolRow(Transform parent, string emoji, string toolName, string desc, bool isFirst)
     {
         var row   = MakeGO("Tool_" + toolName, parent);
-        LE(row, TOOL_H);
+        LE(row, S(TOOL_H));
 
         var rowImg = row.AddComponent<Image>(); rowImg.color = Color.clear;
         var rowBtn = row.AddComponent<Button>(); rowBtn.targetGraphic = rowImg;
@@ -535,29 +542,29 @@ public class CreditsScreenBuilder : MonoBehaviour
         var boxRT = box.GetComponent<RectTransform>();
         boxRT.anchorMin = new Vector2(0f, 0.5f); boxRT.anchorMax = new Vector2(0f, 0.5f);
         boxRT.pivot     = new Vector2(0f, 0.5f);
-        boxRT.anchoredPosition = new Vector2(14f, 0f);
-        boxRT.sizeDelta = new Vector2(36f, 36f);
+        boxRT.anchoredPosition = new Vector2(S(14f), 0f);
+        boxRT.sizeDelta = new Vector2(S(36f), S(36f));
         var boxImg = box.AddComponent<Image>(); boxImg.color = WHITE12; Rounded(boxImg);
         boxImg.raycastTarget = false;
 
         var emoGO  = MakeGO("Emoji", box.transform); StretchFill(emoGO);
         var emoTMP = emoGO.AddComponent<TextMeshProUGUI>();
-        emoTMP.text = emoji; emoTMP.fontSize = 18f;
+        emoTMP.text = emoji; emoTMP.fontSize = S(18f);
         emoTMP.alignment = TextAlignmentOptions.Center; emoTMP.raycastTarget = false;
 
         // Body
         var body   = MakeGO("Body", row.transform);
         var bodyRT = body.GetComponent<RectTransform>();
         bodyRT.anchorMin = new Vector2(0f, 0f); bodyRT.anchorMax = new Vector2(1f, 1f);
-        bodyRT.offsetMin = new Vector2(14f + 36f + 12f, 0f);
-        bodyRT.offsetMax = new Vector2(-14f, 0f);
+        bodyRT.offsetMin = new Vector2(S(62f), 0f);
+        bodyRT.offsetMax = new Vector2(-S(14f), 0f);
 
         var nameGO  = MakeGO("Name", body.transform);
         var nameRT  = nameGO.GetComponent<RectTransform>();
         nameRT.anchorMin = new Vector2(0f, 0.5f); nameRT.anchorMax = Vector2.one;
         nameRT.offsetMin = nameRT.offsetMax = Vector2.zero;
         var nameTMP = nameGO.AddComponent<TextMeshProUGUI>();
-        nameTMP.text = toolName; nameTMP.fontSize = 14f; nameTMP.fontStyle = FontStyles.Bold;
+        nameTMP.text = toolName; nameTMP.fontSize = S(14f); nameTMP.fontStyle = FontStyles.Bold;
         nameTMP.color = WHITE; nameTMP.alignment = TextAlignmentOptions.Left;
         nameTMP.overflowMode = TextOverflowModes.Ellipsis; nameTMP.raycastTarget = false;
 
@@ -566,7 +573,7 @@ public class CreditsScreenBuilder : MonoBehaviour
         descRT.anchorMin = Vector2.zero; descRT.anchorMax = new Vector2(1f, 0.5f);
         descRT.offsetMin = descRT.offsetMax = Vector2.zero;
         var descTMP = descGO.AddComponent<TextMeshProUGUI>();
-        descTMP.text = desc; descTMP.fontSize = 11f;
+        descTMP.text = desc; descTMP.fontSize = S(11f);
         descTMP.color = WHITE40; descTMP.alignment = TextAlignmentOptions.Left;
         descTMP.overflowMode = TextOverflowModes.Ellipsis; descTMP.raycastTarget = false;
     }
@@ -575,7 +582,7 @@ public class CreditsScreenBuilder : MonoBehaviour
 
     void BuildThanksCard(Transform parent)
     {
-        Gap(parent, 6f);
+        Gap(parent, S(6f));
         var go  = MakeGO("ThanksCard", parent);
         var le  = go.AddComponent<LayoutElement>();
         le.flexibleHeight = 0f;
@@ -584,7 +591,7 @@ public class CreditsScreenBuilder : MonoBehaviour
         var vl = go.AddComponent<VerticalLayoutGroup>();
         vl.childAlignment        = TextAnchor.UpperCenter;
         vl.spacing               = 0f;
-        vl.padding               = new RectOffset(24, 24, 22, 22);
+        vl.padding               = new RectOffset(SI(24f), SI(24f), SI(22f), SI(22f));
         vl.childControlWidth     = true;
         vl.childControlHeight    = true;
         vl.childForceExpandWidth = true;
@@ -597,30 +604,32 @@ public class CreditsScreenBuilder : MonoBehaviour
         Rounded(brdImg); brdImg.raycastTarget = false;
 
         // Boat emoji large
-        var emoGO  = MakeGO("Emoji", go.transform); LE(emoGO, 52f);
+        var emoGO  = MakeGO("Emoji", go.transform); LE(emoGO, S(52f));
         var emoTMP = emoGO.AddComponent<TextMeshProUGUI>();
-        emoTMP.text = "🌊"; emoTMP.fontSize = 38f;
+        emoTMP.text = "🌊"; emoTMP.fontSize = S(38f);
         emoTMP.alignment = TextAlignmentOptions.Center;
 
-        Gap(go.transform, 4f);
+        Gap(go.transform, S(4f));
 
         // Title
-        var titleGO  = MakeGO("ThanksTitle", go.transform); LE(titleGO, 30f);
+        var titleGO  = MakeGO("ThanksTitle", go.transform); LE(titleGO, S(30f));
         var titleTMP = titleGO.AddComponent<TextMeshProUGUI>();
-        titleTMP.text      = "To All Our Players";
-        titleTMP.fontSize  = 20f;
+        titleTMP.text      = LocalizationManager.T("ui.credits.thanks_title");
+        titleTMP.fontSize  = S(20f);
         titleTMP.fontStyle = FontStyles.Bold;
         titleTMP.color     = new Color(0.98f, 0.75f, 0.14f, 1f);
         titleTMP.alignment = TextAlignmentOptions.Center;
         titleTMP.characterSpacing = 1f;
+        Loc(titleGO, "ui.credits.thanks_title");
 
-        Gap(go.transform, 8f);
+        Gap(go.transform, S(8f));
 
         // Body text
-        var bodyGO  = MakeGO("ThanksBody", go.transform); LE(bodyGO, 72f);
+        var bodyGO  = MakeGO("ThanksBody", go.transform); LE(bodyGO, S(72f));
         var bodyTMP = bodyGO.AddComponent<TextMeshProUGUI>();
-        bodyTMP.text      = "Thank you for sailing with us!\nEvery puzzle solved, every harbour\nescaped — you make it all worth it.\nFair winds, captain.  ⚓";
-        bodyTMP.fontSize  = 13f;
+        bodyTMP.text      = LocalizationManager.T("ui.credits.thanks_body");
+        Loc(bodyGO, "ui.credits.thanks_body");
+        bodyTMP.fontSize  = S(13f);
         bodyTMP.color     = WHITE65;
         bodyTMP.alignment = TextAlignmentOptions.Center;
         bodyTMP.lineSpacing = 4f;
@@ -630,13 +639,13 @@ public class CreditsScreenBuilder : MonoBehaviour
 
     void BuildSocials(Transform parent)
     {
-        Gap(parent, 6f);
+        Gap(parent, S(6f));
         var row   = MakeGO("Socials", parent);
-        LE(row, 72f);
+        LE(row, S(72f));
 
         var hl = row.AddComponent<HorizontalLayoutGroup>();
         hl.childAlignment        = TextAnchor.MiddleCenter;
-        hl.spacing               = 12f;
+        hl.spacing               = S(12f);
         hl.childControlWidth     = false;
         hl.childControlHeight    = true;
         hl.childForceExpandWidth  = false;
@@ -651,7 +660,7 @@ public class CreditsScreenBuilder : MonoBehaviour
     {
         var go   = MakeGO("Social_" + label, parent);
         var le   = go.AddComponent<LayoutElement>();
-        le.preferredWidth = 90f; le.flexibleWidth = 1f;
+        le.preferredWidth = S(90f); le.flexibleWidth = 1f;
 
         var img  = go.AddComponent<Image>(); img.color = GLASS_FILL; Rounded(img);
         var brd  = MakeGO("Border", go.transform); Stretch(brd);
@@ -664,15 +673,15 @@ public class CreditsScreenBuilder : MonoBehaviour
 
         var vl = go.AddComponent<VerticalLayoutGroup>();
         vl.childAlignment        = TextAnchor.MiddleCenter;
-        vl.spacing               = 4f;
-        vl.padding               = new RectOffset(0, 0, 12, 10);
+        vl.spacing               = S(4f);
+        vl.padding               = new RectOffset(0, 0, SI(12f), SI(10f));
         vl.childControlWidth     = true;
         vl.childControlHeight    = false;
         vl.childForceExpandWidth = true;
         vl.childForceExpandHeight = false;
 
         // Icon or emoji
-        var iconGO = MakeGO("Icon", go.transform); LE(iconGO, 28f);
+        var iconGO = MakeGO("Icon", go.transform); LE(iconGO, S(28f));
         if (sprite != null)
         {
             var iconImg = iconGO.AddComponent<Image>();
@@ -682,15 +691,15 @@ public class CreditsScreenBuilder : MonoBehaviour
         else
         {
             var iconTMP = iconGO.AddComponent<TextMeshProUGUI>();
-            iconTMP.text = fallbackEmoji; iconTMP.fontSize = 22f;
+            iconTMP.text = fallbackEmoji; iconTMP.fontSize = S(22f);
             iconTMP.alignment = TextAlignmentOptions.Center; iconTMP.raycastTarget = false;
         }
 
         // Label
-        var lblGO  = MakeGO("Label", go.transform); LE(lblGO, 16f);
+        var lblGO  = MakeGO("Label", go.transform); LE(lblGO, S(16f));
         var lblTMP = lblGO.AddComponent<TextMeshProUGUI>();
         lblTMP.text            = label;
-        lblTMP.fontSize        = 10f;
+        lblTMP.fontSize        = S(10f);
         lblTMP.fontStyle       = FontStyles.Bold;
         lblTMP.color           = WHITE40;
         lblTMP.alignment       = TextAlignmentOptions.Center;
@@ -702,20 +711,21 @@ public class CreditsScreenBuilder : MonoBehaviour
 
     void BuildFooter(Transform parent)
     {
-        var copy = MakeGO("Copyright", parent); LE(copy, 18f);
+        var copy = MakeGO("Copyright", parent); LE(copy, S(18f));
         var cTMP = copy.AddComponent<TextMeshProUGUI>();
-        cTMP.text      = "© 2025 Boat Jam — All rights reserved";
-        cTMP.fontSize  = 11f;
+        cTMP.text      = LocalizationManager.T("ui.copyright");
+        Loc(copy, "ui.copyright");
+        cTMP.fontSize  = S(11f);
         cTMP.fontStyle = FontStyles.Bold;
         cTMP.color     = new Color(1f, 1f, 1f, 0.35f);
         cTMP.alignment = TextAlignmentOptions.Center;
 
-        Gap(parent, 4f);
+        Gap(parent, S(4f));
 
-        var ver = MakeGO("Version", parent); LE(ver, VERSION_H);
+        var ver = MakeGO("Version", parent); LE(ver, S(VERSION_H));
         var vTMP = ver.AddComponent<TextMeshProUGUI>();
         vTMP.text            = $"v{Application.version}";
-        vTMP.fontSize        = 11f;
+        vTMP.fontSize        = S(11f);
         vTMP.color           = new Color(1f, 1f, 1f, 0.22f);
         vTMP.alignment       = TextAlignmentOptions.Center;
         vTMP.characterSpacing = 2f;
@@ -884,5 +894,11 @@ public class CreditsScreenBuilder : MonoBehaviour
     static Color Hex(string h)
     {
         ColorUtility.TryParseHtmlString("#" + h, out Color c); return c;
+    }
+
+    static void Loc(GameObject go, string key)
+    {
+        var lt = go.AddComponent<LocalizedText>();
+        lt.SetKey(key);
     }
 }

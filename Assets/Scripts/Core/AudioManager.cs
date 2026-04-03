@@ -45,8 +45,16 @@ public class AudioManager : MonoBehaviour
 
     public void ApplyVolumes()
     {
-        if (musicSource != null) musicSource.volume = PlayerPrefs.GetFloat(MUSIC_KEY, 0.8f);
-        if (sfxSource   != null) sfxSource.volume   = PlayerPrefs.GetFloat(SFX_KEY,   1f);
+        if (musicSource != null)
+        {
+            musicSource.volume = PlayerPrefs.GetFloat(MUSIC_KEY, 0.8f);
+            musicSource.mute   = PlayerPrefs.GetInt("Setting_music_on", 1) == 0;
+        }
+        if (sfxSource != null)
+        {
+            sfxSource.volume = PlayerPrefs.GetFloat(SFX_KEY, 1f);
+            sfxSource.mute   = PlayerPrefs.GetInt("Setting_sfx_on", 1) == 0;
+        }
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
