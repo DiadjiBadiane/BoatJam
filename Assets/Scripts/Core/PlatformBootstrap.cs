@@ -13,6 +13,9 @@ public static class PlatformBootstrap
         QualitySettings.vSyncCount = 0;
         Application.targetFrameRate = 60;
 
+        // Apply saved graphics quality (Low/Mid/High)
+        GraphicsQualityManager.Apply();
+
 #if UNITY_ANDROID || UNITY_IOS
         Screen.orientation = ScreenOrientation.AutoRotation;
         Screen.autorotateToLandscapeLeft = true;

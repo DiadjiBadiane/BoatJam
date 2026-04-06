@@ -17,7 +17,7 @@
     { "key": "ui.settings.timer_desc", "value": "Track time per puzzle" },
     { "key": "ui.settings.leaderboard", "value": "Leaderboard" },
     { "key": "ui.settings.leaderboard_desc", "value": "Compare with other captains" },
-    { "key": "ui.settings.reset_progress", "value": "🗑   Reset Progress" },
+    { "key": "ui.settings.reset_progress", "value": "Reset Progress" },
 
     { "key": "ui.home.title", "value": "BOAT JAM" },
     { "key": "ui.home.subtitle", "value": "HARBOR ESCAPE" },
@@ -29,6 +29,8 @@
     { "key": "ui.levelselect.title", "value": "LEVELS" },
     { "key": "ui.levelselect.world_name", "value": "Harbor World" },
     { "key": "ui.levelselect.progress", "value": "{0} / {1} complete" },
+
+    { "key": "ui.buttons.close", "value": "Close" },
 
     { "key": "ui.gameplay.level_clear", "value": "LEVEL CLEAR!" },
     { "key": "ui.gameplay.paused", "value": "PAUSED" },

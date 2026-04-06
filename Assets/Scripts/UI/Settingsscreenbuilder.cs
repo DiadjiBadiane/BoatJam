@@ -61,7 +61,7 @@ public class SettingsScreenBuilder : MonoBehaviour
     static readonly Color ORANGE     = new Color(0.96f, 0.62f, 0.07f, 1f);
     static readonly Color ORANGE_DRK = new Color(0.85f, 0.45f, 0.02f, 1f);
     static readonly Color GLASS_BRD  = new Color(1f, 1f, 1f, 0.22f);
-    static readonly Color GLASS_FILL = new Color(1f, 1f, 1f, 0.10f);
+    static readonly Color GLASS_FILL = new Color(0f, 0.04f, 0.12f, 0.45f);
     static readonly Color GLASS_ROW  = new Color(1f, 1f, 1f, 0.07f);
     static readonly Color CLOUD_CLR  = new Color(1f, 1f, 1f, 0.18f);
     static readonly Color GLINT_CLR  = new Color(1f, 0.863f, 0.314f, 0.6f);
@@ -70,8 +70,8 @@ public class SettingsScreenBuilder : MonoBehaviour
     static readonly Color WHITE40    = new Color(1f, 1f, 1f, 0.40f);
     static readonly Color WHITE25    = new Color(1f, 1f, 1f, 0.25f);
     static readonly Color WHITE12    = new Color(1f, 1f, 1f, 0.12f);
-    static readonly Color RED_BORDER = new Color(0.94f, 0.27f, 0.27f, 0.50f);
-    static readonly Color RED_FILL   = new Color(0.94f, 0.27f, 0.27f, 0.12f);
+    static readonly Color RED_BORDER = new Color(0.94f, 0.27f, 0.27f, 0.30f);
+    static readonly Color RED_FILL   = new Color(0.94f, 0.27f, 0.27f, 0.07f);
     static readonly Color RED_TEXT   = new Color(1f, 0.64f, 0.64f, 1f);
 
     // Icon bubble tints — each section gets its own accent colour
@@ -128,7 +128,7 @@ public class SettingsScreenBuilder : MonoBehaviour
     [ContextMenu("Build Settings Screen")]
     public void Build()
     {
-        _uiScale = Screen.width > Screen.height ? 1.45f : 1f;
+        _uiScale = Screen.width > Screen.height ? 1.85f : 1.5f;
 
         var old = transform.Find("SettingsPanel");
         if (old != null)
@@ -798,6 +798,8 @@ public class SettingsScreenBuilder : MonoBehaviour
                 PlayerPrefs.SetInt("Setting_" + iconName, idx);
                 if (iconName == "language" && LocalizationManager.Instance != null)
                     LocalizationManager.Instance.SetLanguageByIndex(idx);
+                if (iconName == "graphics")
+                    GraphicsQualityManager.Apply(idx);
             });
         }
     }
@@ -951,14 +953,37 @@ public class SettingsScreenBuilder : MonoBehaviour
         bImg.color = RED_BORDER; Rounded(bImg);
         bImg.raycastTarget = false;
 
-        var lbl = MakeGO("Label", go.transform);
-        StretchFill(lbl);
+        // Icon + text in a centred horizontal layout
+        var rowGO = MakeGO("Content", go.transform);
+        StretchFill(rowGO);
+        var hl = rowGO.AddComponent<HorizontalLayoutGroup>();
+        hl.childAlignment        = TextAnchor.MiddleCenter;
+        hl.spacing               = S(10f);
+        hl.childControlWidth     = false;
+        hl.childControlHeight    = false;
+        hl.childForceExpandWidth = false;
+        hl.childForceExpandHeight = false;
+
+        // Reset icon
+        var iconGO  = MakeGO("ResetIcon", rowGO.transform);
+        var iconRT  = iconGO.GetComponent<RectTransform>();
+        iconRT.sizeDelta = new Vector2(S(30f), S(30f));
+        var iconImg = iconGO.AddComponent<Image>();
+        iconImg.preserveAspect = true;
+        iconImg.raycastTarget  = false;
+        iconImg.color          = RED_TEXT;
+        var resetSprite = Icon("reset");
+        if (resetSprite != null) iconImg.sprite = resetSprite;
+
+        var lbl = MakeGO("Label", rowGO.transform);
+        var lblRT = lbl.GetComponent<RectTransform>();
+        lblRT.sizeDelta = new Vector2(S(200f), S(RESET_H));
         var lTMP = lbl.AddComponent<TextMeshProUGUI>();
-        lTMP.text      = "🗑   Reset Progress";
+        lTMP.text      = LocalizationManager.T("ui.settings.reset_progress");
         lTMP.fontSize  = S(18f);
         lTMP.fontStyle = FontStyles.Bold;
         lTMP.color     = RED_TEXT;
-        lTMP.alignment = TextAlignmentOptions.Center;
+        lTMP.alignment = TextAlignmentOptions.MidlineLeft;
         lTMP.raycastTarget = false;
         Loc(lbl, "ui.settings.reset_progress");
 
@@ -969,6 +994,13 @@ public class SettingsScreenBuilder : MonoBehaviour
         cols.highlightedColor = new Color(1.1f, 0.94f, 0.94f, 1f);
         cols.pressedColor     = new Color(0.85f, 0.85f, 0.85f, 1f);
         btn.colors = cols;
+
+        // Wire reset action directly so it always works
+        btn.onClick.AddListener(() =>
+        {
+            var mm = FindObjectOfType<MainMenuManager>();
+            if (mm != null) mm.ResetSavedLevelProgress();
+        });
 
         return btn;
     }

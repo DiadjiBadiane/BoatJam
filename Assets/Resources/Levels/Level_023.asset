@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b21ec8525ed3a264e98c6e0f45199dfa, type: 3}
-  m_Name: Level_008
+  m_Name: Level_023
   m_EditorClassIdentifier: Assembly-CSharp::LevelData
-  gridWidth: 8
-  gridHeight: 8
+  gridWidth: 10
+  gridHeight: 10
   exitRow: 4
   exitOnRight: 1
   boats:
@@ -25,53 +25,95 @@ MonoBehaviour:
     isHorizontal: 1
     isHero: 1
   - id: b1
-    col: 5
+    col: 7
     row: 3
     size: 2
     width: 1
     isHorizontal: 0
     isHero: 0
   - id: b2
-    col: 7
-    row: 4
-    size: 2
-    width: 1
-    isHorizontal: 0
-    isHero: 0
-  - id: b3
     col: 4
     row: 2
     size: 4
     width: 1
     isHorizontal: 1
     isHero: 0
-  - id: b4
+  - id: b3
     col: 0
-    row: 7
+    row: 9
+    size: 4
+    width: 1
+    isHorizontal: 1
+    isHero: 0
+  - id: b4
+    col: 4
+    row: 9
     size: 4
     width: 1
     isHorizontal: 1
     isHero: 0
   - id: b5
-    col: 4
+    col: 0
     row: 6
-    size: 4
-    width: 1
-    isHorizontal: 1
+    size: 2
+    width: 2
+    isHorizontal: 0
     isHero: 0
   - id: b6
-    col: 0
-    row: 5
+    col: 2
+    row: 6
     size: 2
     width: 2
     isHorizontal: 0
     isHero: 0
   - id: b7
-    col: 0
-    row: 0
+    col: 4
+    row: 6
     size: 2
     width: 2
     isHorizontal: 0
     isHero: 0
-  threeStarMoves: 6
-  twoStarMoves: 10
+  - id: b8
+    col: 6
+    row: 6
+    size: 2
+    width: 2
+    isHorizontal: 0
+    isHero: 0
+  - id: b9
+    col: 8
+    row: 6
+    size: 2
+    width: 2
+    isHorizontal: 1
+    isHero: 0
+  - id: b10
+    col: 0
+    row: 0
+    size: 4
+    width: 2
+    isHorizontal: 0
+    isHero: 0
+  - id: b11
+    col: 2
+    row: 0
+    size: 4
+    width: 2
+    isHorizontal: 0
+    isHero: 0
+  - id: b12
+    col: 4
+    row: 0
+    size: 4
+    width: 2
+    isHorizontal: 1
+    isHero: 0
+  - id: b13
+    col: 8
+    row: 0
+    size: 4
+    width: 2
+    isHorizontal: 0
+    isHero: 0
+  threeStarMoves: 18
+  twoStarMoves: 22

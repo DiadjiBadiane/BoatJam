@@ -32,6 +32,9 @@ public class GameManager : MonoBehaviour
     int  _framesSinceLoad;
     bool _autoAdvanceRunning;
 
+    // ── Hint mode ──────────────────────────────────────────────────────────
+    public bool IsHintModeActive { get; private set; }
+
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     void Awake()
@@ -209,6 +212,7 @@ public class GameManager : MonoBehaviour
         _levelCompletionShown = false;
         _framesSinceLoad      = 0;
         _autoAdvanceRunning   = false;
+        IsHintModeActive      = false;
 
         StopAllCoroutines();
 
@@ -404,5 +408,46 @@ public class GameManager : MonoBehaviour
             SceneManager.LoadScene("MainMenu");
         else
             LoadLevel(next);
+    }
+
+    // ── Hint: remove a boat ───────────────────────────────────────────────
+
+    public void EnterHintMode()
+    {
+        if (_levelCompletionShown) return;
+
+        // Respect the settings toggle
+        if (uiManager != null && !uiManager.AreHintsEnabled())
+        {
+            Debug.Log("[GameManager] Hints are disabled in settings.");
+            return;
+        }
+
+        IsHintModeActive = true;
+        Debug.Log("[GameManager] Hint mode activated — tap a boat to remove it.");
+    }
+
+    public void CancelHintMode()
+    {
+        IsHintModeActive = false;
+        Debug.Log("[GameManager] Hint mode cancelled.");
+    }
+
+    /// <summary>
+    /// Removes a non-hero boat from the grid and destroys its GameObject.
+    /// Called by InputHandler when a boat is tapped while hint mode is active.
+    /// </summary>
+    public void RemoveBoatHint(BoatMovement boat)
+    {
+        if (boat == null || boat.isHero) return;
+
+        GridManager.Instance.UnregisterBoat(boat);
+        Destroy(boat.gameObject);
+        IsHintModeActive = false;
+
+        Debug.Log($"[GameManager] Hint used — removed boat '{boat.boatId}'.");
+
+        // Check if the hero can now escape after removing the boat.
+        StartCoroutine(CheckAndAutoAdvance());
     }
 }

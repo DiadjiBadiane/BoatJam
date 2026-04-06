@@ -17,7 +17,7 @@
     { "key": "ui.settings.timer_desc", "value": "Suivre le temps par puzzle" },
     { "key": "ui.settings.leaderboard", "value": "Classement" },
     { "key": "ui.settings.leaderboard_desc", "value": "Comparez-vous aux autres capitaines" },
-    { "key": "ui.settings.reset_progress", "value": "🗑   Réinitialiser" },
+    { "key": "ui.settings.reset_progress", "value": "Réinitialiser" },
 
     { "key": "ui.home.title", "value": "BOAT JAM" },
     { "key": "ui.home.subtitle", "value": "ÉVASION DU PORT" },
@@ -29,6 +29,8 @@
     { "key": "ui.levelselect.title", "value": "NIVEAUX" },
     { "key": "ui.levelselect.world_name", "value": "Monde du port" },
     { "key": "ui.levelselect.progress", "value": "{0} / {1} terminés" },
+
+    { "key": "ui.buttons.close", "value": "Fermer" },
 
     { "key": "ui.gameplay.level_clear", "value": "NIVEAU RÉUSSI !" },
     { "key": "ui.gameplay.paused", "value": "PAUSE" },

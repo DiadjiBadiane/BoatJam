@@ -742,24 +742,23 @@ MonoBehaviour:
   - {fileID: 1820966175023472826, guid: cc3b823710f4c234c8990691f6b8cc29, type: 3}
   - {fileID: 9092239207341527791, guid: 159faf2a6e13b0f44bc8b30c15000147, type: 3}
   - {fileID: 3706739477761896538, guid: 7272d41971cf91746a73c5df52f84818, type: 3}
+  - {fileID: 2360129503470072651, guid: 0e7fe0c116d0c6c439f873c79785e74d, type: 3}
   boatSize4PrefabPool:
-  - {fileID: 6957102343045412865, guid: 79db6c0fb060b0842bd4748774bd02cb, type: 3}
-  - {fileID: 99776377754922590, guid: 0ff0fcde69899e94c8976a4d708458c5, type: 3}
-  - {fileID: 1935659433590405895, guid: 05672fefb7b2d8e4692921996d05045c, type: 3}
-  boatSize2x2PrefabPool:
-  - {fileID: 6717196081178269622, guid: 1f573ae119d9b454e8298d323d9f801f, type: 3}
-  - {fileID: 503540679405297627, guid: df66623930f660f48adfd54b76b64c6f, type: 3}
-  - {fileID: 2506729318221896298, guid: f7df10d949efc36469d1111ef998c1b5, type: 3}
-  - {fileID: 5517430292389365749, guid: be609502ff7749c44a08007d5b0b8967, type: 3}
-  - {fileID: 3907990977450993756, guid: b607a433a08dcc44091e5be64559b0b1, type: 3}
-  boatSize4x2PrefabPool:
-  - {fileID: 3615228482440194301, guid: 78afb04a9b9414c4eab0c23b781811a6, type: 3}
-  - {fileID: 6229587691453910830, guid: 4598e934e77fb5641977cc80fbbf1abd, type: 3}
-  - {fileID: 6404219295338624019, guid: 7e63cdc73edcf6a4b8acf6c4972237d7, type: 3}
   - {fileID: 5789786211445501697, guid: b4118085949ec0e42972c5af70e5a5b1, type: 3}
   - {fileID: 8638603888753850409, guid: 23670020257a41f4a84ac3256aefefc7, type: 3}
   - {fileID: 4189572979941054190, guid: 772e87e0f939db7428f4c3a01e9dee81, type: 3}
   - {fileID: 844043688144586807, guid: 68974c67d6aedb440b34cf6378b44287, type: 3}
+  boatSize2x2PrefabPool:
+  - {fileID: 9058003164498826326, guid: c57972071ccdd5746898e8fc32aa3bd1, type: 3}
+  - {fileID: 907870815039758202, guid: 950c9da43975b4f4da550b91e309bbf0, type: 3}
+  - {fileID: 4489467143705656023, guid: e11e4cfc6fb148d43baccf501f801334, type: 3}
+  - {fileID: 7135910854248988531, guid: b0faad5451ac806418b2efecdcb63d14, type: 3}
+  boatSize4x2PrefabPool:
+  - {fileID: 99776377754922590, guid: 0ff0fcde69899e94c8976a4d708458c5, type: 3}
+  - {fileID: 1935659433590405895, guid: 05672fefb7b2d8e4692921996d05045c, type: 3}
+  - {fileID: 3615228482440194301, guid: 78afb04a9b9414c4eab0c23b781811a6, type: 3}
+  - {fileID: 6229587691453910830, guid: 4598e934e77fb5641977cc80fbbf1abd, type: 3}
+  - {fileID: 6404219295338624019, guid: 7e63cdc73edcf6a4b8acf6c4972237d7, type: 3}
   enforceRuntimeBoatFit: 1
   runtimeScaleFactor: 1.15
   heroScaleFactor: 1.1

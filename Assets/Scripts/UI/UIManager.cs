@@ -29,6 +29,9 @@ public class UIManager : MonoBehaviour
     TextMeshProUGUI hudMovesText;
     int             movesCount;
     static Sprite   s_Rounded;
+    Button          hudHintButton;
+    Image           hudHintImage;
+    TextMeshProUGUI hudHintLabel;
 
     // ── Undo stack ────────────────────────────────────────────────────────────
     struct BoatState
@@ -121,8 +124,26 @@ public class UIManager : MonoBehaviour
         undoStack.Clear();
         Refresh(hudLevelText, LocalizationManager.T("ui.gameplay.lvl_prefix") + " " + levelNumber);
         Refresh(hudMovesText, "0");
+        RefreshHintButton();
         Time.timeScale = 1f;
     }
+
+    /// <summary>
+    /// Checks the "Show Hints" setting and enables/disables + grays out the hint button.
+    /// </summary>
+    void RefreshHintButton()
+    {
+        bool hintsEnabled = PlayerPrefs.GetInt("Setting_hints", 0) == 1;
+        if (hudHintButton != null)
+            hudHintButton.interactable = hintsEnabled;
+        if (hudHintImage != null)
+            hudHintImage.color = hintsEnabled ? GLASS : new Color(0.3f, 0.3f, 0.3f, 0.25f);
+        if (hudHintLabel != null)
+            hudHintLabel.color = hintsEnabled ? Color.white : new Color(1f, 1f, 1f, 0.3f);
+    }
+
+    /// <summary>Returns true if hints are enabled in the settings.</summary>
+    public bool AreHintsEnabled() => PlayerPrefs.GetInt("Setting_hints", 0) == 1;
 
     /// <summary>
     /// Show the win panel. GameManager calls this with the star count already
@@ -375,8 +396,15 @@ public class UIManager : MonoBehaviour
         var hcRT     = hintCard.GetComponent<RectTransform>();
         hcRT.anchorMin = new Vector2(0.77f, 0f); hcRT.anchorMax = new Vector2(1f, 1f);
         hcRT.offsetMin = hcRT.offsetMax = Vector2.zero;
-        hintCard.AddComponent<Button>().targetGraphic = hintCard.GetComponent<Image>();
-        MakeTMP("HintLbl", hintCard.transform, LocalizationManager.T("ui.gameplay.hint"), 18f,
+        hudHintButton = hintCard.AddComponent<Button>();
+        hudHintButton.targetGraphic = hintCard.GetComponent<Image>();
+        hudHintButton.onClick.AddListener(() =>
+        {
+            var gm = GameManager.Instance;
+            if (gm != null) gm.EnterHintMode();
+        });
+        hudHintImage = hintCard.GetComponent<Image>();
+        hudHintLabel = MakeTMP("HintLbl", hintCard.transform, LocalizationManager.T("ui.gameplay.hint"), 18f,
             FontStyles.Bold, Color.white, TextAlignmentOptions.Center);
     }
 

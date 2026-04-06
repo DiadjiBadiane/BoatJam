@@ -31,5 +31,19 @@ MonoBehaviour:
     width: 1
     isHorizontal: 0
     isHero: 0
+  - id: b2
+    col: 0
+    row: 7
+    size: 2
+    width: 1
+    isHorizontal: 1
+    isHero: 0
+  - id: b3
+    col: 7
+    row: 0
+    size: 2
+    width: 1
+    isHorizontal: 0
+    isHero: 0
   threeStarMoves: 2
-  twoStarMoves: 6
+  twoStarMoves: 5

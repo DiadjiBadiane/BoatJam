@@ -26,8 +26,8 @@ MonoBehaviour:
     isHero: 1
   - id: b1
     col: 5
-    row: 2
-    size: 3
+    row: 3
+    size: 2
     width: 1
     isHorizontal: 0
     isHero: 0
@@ -38,32 +38,53 @@ MonoBehaviour:
     width: 1
     isHorizontal: 0
     isHero: 0
-  - id: g1
+  - id: b3
     col: 4
-    row: 1
-    size: 2
+    row: 2
+    size: 4
     width: 1
     isHorizontal: 1
     isHero: 0
-  - id: c1
-    col: 0
+  - id: b4
+    col: 4
     row: 6
-    size: 2
+    size: 4
     width: 1
+    isHorizontal: 1
+    isHero: 0
+  - id: b5
+    col: 0
+    row: 7
+    size: 4
+    width: 1
+    isHorizontal: 1
+    isHero: 0
+  - id: b6
+    col: 0
+    row: 5
+    size: 2
+    width: 2
     isHorizontal: 0
     isHero: 0
-  - id: c2
-    col: 0
+  - id: b7
+    col: 2
+    row: 5
+    size: 2
+    width: 2
+    isHorizontal: 0
+    isHero: 0
+  - id: b8
+    col: 4
     row: 0
     size: 2
-    width: 1
-    isHorizontal: 0
+    width: 2
+    isHorizontal: 1
     isHero: 0
-  - id: c3
-    col: 2
-    row: 7
-    size: 2
-    width: 1
+  - id: b9
+    col: 0
+    row: 0
+    size: 4
+    width: 2
     isHorizontal: 1
     isHero: 0
   threeStarMoves: 9

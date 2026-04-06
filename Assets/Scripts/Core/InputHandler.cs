@@ -162,8 +162,6 @@ public class InputHandler : MonoBehaviour
         Ray ray = gameCamera.ScreenPointToRay(screenPos);
 
         // ── Pass 1: RaycastAll — pick the closest boat hit ────────────────────
-        // RaycastAll finds hits even when the ray enters through a collider edge,
-        // which fixes clicks that land near the tip or side of a boat.
         BoatMovement best = null;
         float bestDist = float.MaxValue;
 
@@ -178,25 +176,34 @@ public class InputHandler : MonoBehaviour
             }
         }
 
+        if (best == null)
+        {
+            // ── Pass 2: Sphere cast fallback ──────────────────────────────────
+            float sphereRadius = (GridManager.Instance != null ? GridManager.Instance.cellSize : 1f) * 0.35f;
+            if (Physics.SphereCast(ray, sphereRadius, out RaycastHit sphereHit, 100f))
+                best = sphereHit.collider.GetComponentInParent<BoatMovement>();
+        }
+
+        // ── Hint mode: remove the tapped boat instead of selecting it ─────────
+        if (best != null && GameManager.Instance != null && GameManager.Instance.IsHintModeActive)
+        {
+            if (!best.isHero)
+            {
+                Deselect();
+                GameManager.Instance.RemoveBoatHint(best);
+            }
+            return;
+        }
+
         if (best != null)
         {
             if (_selectedBoat != best) { Deselect(); Select(best); }
             return;
         }
 
-        // ── Pass 2: Sphere cast fallback ──────────────────────────────────────
-        // If the ray missed all colliders (click was just outside the edge),
-        // sweep a small sphere along the same ray to catch near-misses.
-        float sphereRadius = (GridManager.Instance != null ? GridManager.Instance.cellSize : 1f) * 0.35f;
-        if (Physics.SphereCast(ray, sphereRadius, out RaycastHit sphereHit, 100f))
-        {
-            BoatMovement bm = sphereHit.collider.GetComponentInParent<BoatMovement>();
-            if (bm != null)
-            {
-                if (_selectedBoat != bm) { Deselect(); Select(bm); }
-                return;
-            }
-        }
+        // Tapped empty space — cancel hint mode if active
+        if (GameManager.Instance != null && GameManager.Instance.IsHintModeActive)
+            GameManager.Instance.CancelHintMode();
 
         Deselect();
     }

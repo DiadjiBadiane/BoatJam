@@ -135,8 +135,20 @@ public class MainMenuManager : MonoBehaviour
         sfxSlider      ?.onValueChanged.AddListener(v => PlayerPrefs.SetFloat(SFX_VOL_KEY,   v));
         vibrationToggle?.onValueChanged.AddListener(v => PlayerPrefs.SetInt(VIBRATION_KEY, v ? 1 : 0));
 
+        LocalizationManager.OnLanguageChanged += OnLanguageChanged;
+
         // Defer ShowPanel one frame so all builder Start() methods have run
         StartCoroutine(ShowHomePanelNextFrame());
+    }
+
+    void OnDestroy()
+    {
+        LocalizationManager.OnLanguageChanged -= OnLanguageChanged;
+    }
+
+    void OnLanguageChanged()
+    {
+        RefreshProgressValues();
     }
 
     System.Collections.IEnumerator ShowHomePanelNextFrame()
@@ -467,12 +479,14 @@ public class MainMenuManager : MonoBehaviour
         var titleRT  = titleGO.AddComponent<RectTransform>();
         titleRT.sizeDelta = new Vector2(220f, HEADER_HEIGHT);
         var titleTMP = titleGO.AddComponent<TextMeshProUGUI>();
-        titleTMP.text          = "LEVELS";
+        titleTMP.text          = LocalizationManager.T("ui.levelselect.title");
         titleTMP.fontSize      = 38f;
         titleTMP.fontStyle     = FontStyles.Bold;
         titleTMP.color         = Color.white;
         titleTMP.alignment     = TextAlignmentOptions.Center;
         titleTMP.raycastTarget = false;
+        var titleLoc = titleGO.AddComponent<LocalizedText>();
+        titleLoc.locKey = "ui.levelselect.title";
     }
 
     // ── Progress bar ─────────────────────────────────────────────────────────
@@ -494,14 +508,16 @@ public class MainMenuManager : MonoBehaviour
         block.offsetMax        = new Vector2(-SIDE_PAD, block.offsetMax.y);
 
         // World label (left)
-        progressWorldLabel = MakeTMP("WorldLabel", block, "Harbor World", 28, FontStyles.Bold,
+        progressWorldLabel = MakeTMP("WorldLabel", block, LocalizationManager.T("ui.levelselect.world_name"), 28, FontStyles.Bold,
             new Color(1f, 1f, 1f, 0.80f), TextAlignmentOptions.Left).GetComponent<TextMeshProUGUI>();
+        var worldLoc = progressWorldLabel.gameObject.AddComponent<LocalizedText>();
+        worldLoc.locKey = "ui.levelselect.world_name";
         var wlRect = progressWorldLabel.GetComponent<RectTransform>();
         wlRect.anchorMin = new Vector2(0f, 0.55f); wlRect.anchorMax = new Vector2(0.6f, 1f);
         wlRect.offsetMin = Vector2.zero;            wlRect.offsetMax = Vector2.zero;
 
         // Count label (right)
-        progressCountLabel = MakeTMP("CountLabel", block, "0 / 0 complete", 26, FontStyles.Bold,
+        progressCountLabel = MakeTMP("CountLabel", block, string.Format(LocalizationManager.T("ui.levelselect.progress"), 0, 0), 26, FontStyles.Bold,
             new Color(1f, 1f, 1f, 0.60f), TextAlignmentOptions.Right).GetComponent<TextMeshProUGUI>();
         var clRect = progressCountLabel.GetComponent<RectTransform>();
         clRect.anchorMin = new Vector2(0.6f, 0.55f); clRect.anchorMax = new Vector2(1f, 1f);
@@ -536,8 +552,8 @@ public class MainMenuManager : MonoBehaviour
         int completedCount = Mathf.Max(0, unlockedCount - 1);
         float fill         = totalLevels > 0 ? Mathf.Clamp01((float)completedCount / totalLevels) : 0f;
 
-        if (progressWorldLabel != null) progressWorldLabel.text = "Harbor World";
-        if (progressCountLabel != null) progressCountLabel.text = $"{completedCount} / {totalLevels} complete";
+        if (progressWorldLabel != null) progressWorldLabel.text = LocalizationManager.T("ui.levelselect.world_name");
+        if (progressCountLabel != null) progressCountLabel.text = string.Format(LocalizationManager.T("ui.levelselect.progress"), completedCount, totalLevels);
         if (progressFillRect   != null)
         {
             progressFillRect.anchorMax = new Vector2(fill, 1f);
@@ -592,6 +608,16 @@ public class MainMenuManager : MonoBehaviour
         cr.pivot            = new Vector2(0.5f, 0f);
         cr.anchoredPosition = new Vector2(0f, CLOSE_BTN_PAD);
         cr.sizeDelta        = new Vector2(CLOSE_BTN_W, CLOSE_BTN_H);
+
+        // Localize the Close button label
+        var closeTMP = closeBtn.GetComponentInChildren<TextMeshProUGUI>(true);
+        if (closeTMP != null)
+        {
+            closeTMP.text = LocalizationManager.T("ui.buttons.close");
+            var loc = closeTMP.GetComponent<LocalizedText>();
+            if (loc == null) loc = closeTMP.gameObject.AddComponent<LocalizedText>();
+            loc.locKey = "ui.buttons.close";
+        }
     }
 
     // ── Level grid ────────────────────────────────────────────────────────────
