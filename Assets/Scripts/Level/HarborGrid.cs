@@ -14,13 +14,13 @@ public class HarborGrid : MonoBehaviour
     public float borderHeight    = 0.28f;
     public float gapCellCount    = 2f;
 
-    static readonly Color COL_WATER_A   = Hex("2aa8e8");
-    static readonly Color COL_WATER_B   = Hex("1f86d2");
-    static readonly Color COL_GRID_BG   = Hex("1b76b8");
-    static readonly Color COL_GRID_LINE = new Color(0.80f, 0.94f, 1f, 0.30f);
-    static readonly Color COL_DOCK_RIM  = Hex("2a6d9a");
-    static readonly Color COL_DOCK_WALL = Hex("235f88");
-    static readonly Color COL_BOLT      = Hex("7fc8f2");
+    static readonly Color COL_WATER_A   = Hex("11414c");
+    static readonly Color COL_WATER_B   = Hex("0e3842");
+    static readonly Color COL_GRID_BG   = Hex("0b2e38");
+    static readonly Color COL_GRID_LINE = new Color(0.45f, 0.70f, 0.72f, 0.15f);
+    static readonly Color COL_DOCK_RIM  = Hex("1a4a55");
+    static readonly Color COL_DOCK_WALL = Hex("15404a");
+    static readonly Color COL_BOLT      = Hex("4a8a8f");
 
     void Start()
     {
@@ -34,8 +34,6 @@ public class HarborGrid : MonoBehaviour
         if (gridManager == null) return;
 
         ClearVisuals();
-        DrawWaterFloor();
-        DrawGridLines();
         DrawDockBorder();
         DrawCornerBolts();
     }
@@ -91,9 +89,8 @@ public class HarborGrid : MonoBehaviour
     {
         int w = gridManager.width, h = gridManager.height;
         float tw = w*cellSize, th = h*cellSize, half = cellSize*.5f;
-        float bt = borderThickness, bh = borderHeight, rim = bt*1.5f;
+        float bt = borderThickness, bh = borderHeight;
 
-        Cube("Dock_Rim",    transform, new Vector3(tw*.5f-half, bh*.25f, th*.5f-half), new Vector3(tw+rim*2, bh*.5f, th+rim*2), COL_DOCK_RIM);
         Cube("Dock_Bottom", transform, new Vector3(tw*.5f-half, bh*.5f, -half),        new Vector3(tw+bt*2,  bh, bt),           COL_DOCK_WALL);
         Cube("Dock_Top",    transform, new Vector3(tw*.5f-half, bh*.5f, th-half),      new Vector3(tw+bt*2,  bh, bt),           COL_DOCK_WALL);
 

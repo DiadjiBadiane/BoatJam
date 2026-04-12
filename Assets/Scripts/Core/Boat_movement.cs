@@ -28,6 +28,14 @@ public class BoatMovement : MonoBehaviour
     private Vector3 _targetWorldPos;
     private bool _completionReported;
 
+    // ── Collision bump ────────────────────────────────────────────────────────
+    private bool    _isBumping;
+    private Vector3 _bumpOrigin;
+    private Vector3 _bumpPeak;
+    private float   _bumpTimer;
+    const float BUMP_DISTANCE = 0.15f;   // how far the boat nudges toward the obstacle
+    const float BUMP_DURATION = 0.25f;   // total bump round-trip time
+
     float GetWorldYOffset()
     {
         var fitter = GetComponent<BoatMeshFitter>();
@@ -81,14 +89,19 @@ public class BoatMovement : MonoBehaviour
 
     public void TryMove(Vector2Int dir)
     {
-        if (IsMoving) return;
+        if (IsMoving || _isBumping) return;
 
         if (dir.x != 0 && !isHorizontal) return;
         if (dir.y != 0 &&  isHorizontal) return;
 
         Vector2Int newPos = GridPosition + dir;
 
-        if (!GridManager.Instance.CanMove(this, dir))                        return;
+        // ── Collision with another boat → bump animation ──────────────────────
+        if (!GridManager.Instance.CanMove(this, dir))
+        {
+            StartBump(dir);
+            return;
+        }
         if (!isHero && !GridManager.Instance.IsValidPlacement(this, newPos)) return;
         if ( isHero && !CanHeroMove(newPos))                                  return;
 
@@ -124,6 +137,25 @@ public class BoatMovement : MonoBehaviour
 
         _targetWorldPos = GridManager.Instance.GridToWorld(GridPosition) + _gridOffset + Vector3.up * GetWorldYOffset() - GetWorldCenterOffsetXZ();
         IsMoving = true;
+    }
+
+    // ── Collision bump ────────────────────────────────────────────────────────
+
+    static AudioClip _collisionClip;
+
+    void StartBump(Vector2Int dir)
+    {
+        _bumpOrigin = transform.position;
+        Vector3 worldDir = new Vector3(dir.x, 0f, dir.y);
+        _bumpPeak = _bumpOrigin + worldDir * BUMP_DISTANCE;
+        _bumpTimer = 0f;
+        _isBumping = true;
+
+        // Play collision sound
+        if (_collisionClip == null)
+            _collisionClip = Resources.Load<AudioClip>("ship_impact");
+        if (_collisionClip != null)
+            AudioSource.PlayClipAtPoint(_collisionClip, transform.position);
     }
 
     // ── Undo restore ──────────────────────────────────────────────────────────
@@ -184,6 +216,22 @@ public class BoatMovement : MonoBehaviour
 
     void Update()
     {
+        // ── Collision bump animation ──────────────────────────────────────────
+        if (_isBumping)
+        {
+            _bumpTimer += Time.deltaTime;
+            float t = Mathf.Clamp01(_bumpTimer / BUMP_DURATION);
+            // Smooth out-and-back: peaks at t=0.5, returns to origin at t=1
+            float curve = Mathf.Sin(t * Mathf.PI);
+            transform.position = Vector3.Lerp(_bumpOrigin, _bumpPeak, curve);
+            if (t >= 1f)
+            {
+                transform.position = _bumpOrigin;
+                _isBumping = false;
+            }
+            return;
+        }
+
         if (!IsMoving) return;
 
         transform.position = Vector3.MoveTowards(
